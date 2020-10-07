@@ -14,7 +14,6 @@ class HomeController {
     api.infoAtivo(petro, petro.siglaAtivo);
 
     print(itau.abertura);
-
     print(itau.precoAtual);
     print(klb.abertura);
     print(klb.precoAtual);

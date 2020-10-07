@@ -9,8 +9,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'TRADE QUOTES',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+          fontFamily: 'Montserrat',
+          primaryColor: Color(0xFF529C82),
+          iconTheme: IconThemeData(color: Colors.white),
+          accentColor: Color(0xFFed8d8d),
+          backgroundColor: Color(0xFF529C82),
+          secondaryHeaderColor: Color(0xFF4d4545)),
       home: MyHomePage(),
     );
   }
