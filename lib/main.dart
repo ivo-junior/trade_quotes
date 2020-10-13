@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:trade_quotes/view/ativo_detalado.dart';
 import 'package:trade_quotes/view/home.dart';
 import 'package:trade_quotes/view/home_view.dart';
 
+import 'model/ativo_model.dart';
 import 'view/home_view.dart';
 
 void main() => runApp(MyApp());
@@ -9,7 +11,11 @@ void main() => runApp(MyApp());
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    Map<String, WidgetBuilder> rotas = {'MyHomePage': (__) => MyHomePage()};
+    Map<String, WidgetBuilder> rotas = {
+      'MyHomePage': (__) => MyHomePage(),
+      'AtivoDetalhado': (__) => AtivoDetalhado(AtivoModel('PETR4', '15.0',
+          '14.0', '16.0', '13.0', '0.35%', '25.000', 'Petrobras SA', 'BRL'))
+    };
     return MaterialApp(
       title: 'TRADE QUOTES',
       theme: ThemeData(
