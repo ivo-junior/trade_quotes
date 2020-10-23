@@ -1,34 +1,3 @@
-import 'dart:async';
-import 'dart:ui';
-import 'dart:convert';
-
-import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/gestures.dart';
-import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
-import 'package:yame/models/company.dart';
-import 'package:rxdart/rxdart.dart';
-import 'package:flutter_candlesticks/flutter_candlesticks.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import 'package:yame/models/sectors_model.dart';
-import 'package:yame/models/lists.dart';
-import 'package:yame/models/quote.dart';
-import 'package:yame/models/charts.dart';
-import 'package:yame/models/financials.dart';
-
-import 'package:yame/blocs/sectors_bloc.dart';
-import 'package:yame/blocs/lists_bloc.dart';
-import 'package:yame/blocs/peers_bloc.dart';
-import 'package:yame/blocs/collections_bloc.dart';
-import 'package:yame/blocs/charts_bloc.dart';
-import 'package:yame/blocs/company_info_bloc.dart';
-import 'package:yame/blocs/stats_bloc.dart';
-import 'package:yame/blocs/financials_bloc.dart';
-
-import 'package:yame/providers/iex_api_provider.dart';
-import 'package:yame/network/iex_api_proxy.dart';
-
 const double kOverlayBoxWidth = 160.0;
 const double kOverlayBoxHeight = 160.0;
 const double kOverlayCardWidth = 296.0;

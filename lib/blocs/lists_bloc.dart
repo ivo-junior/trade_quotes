@@ -1,44 +1,45 @@
 import 'dart:async';
 
-import 'package:yame/models/lists.dart' as Lists;
-import 'package:yame/network/iex_api_proxy.dart' as IEX;
+import 'package:trade_quotes/models/lists.dart' as Lists;
+import 'package:trade_quotes/network/api_reques.dart' as Api;
 
+//ou tb gainers
 class ListsBloc {
-  final IEX.IexApiProxy _iexApiProxy;
+  final Api.ApiReques _apiProxy;
   Stream<List<Lists.MarketList>> _gainersListStream = Stream.empty();
   Stream<List<Lists.MarketList>> get gainersListStream => _gainersListStream;
 
-  ListsBloc(this._iexApiProxy) {
+  ListsBloc(this._apiProxy) {
     _gainersListStream =
-        _iexApiProxy.fetchAList(Lists.MarketListType.GAINERS).asStream();
+        _apiProxy.fetchAList(Lists.MarketListType.GAINERS).asStream();
   }
 
   void refresh() {
     _gainersListStream = Stream.empty();
     _gainersListStream =
-        _iexApiProxy.fetchAList(Lists.MarketListType.GAINERS).asStream();
+        _apiProxy.fetchAList(Lists.MarketListType.GAINERS).asStream();
   }
 }
 
-class InfocusListBloc {
-  final IEX.IexApiProxy _iexApiProxy;
+class StocksListBloc {
+  final Api.ApiReques _aiProxy;
   Stream<List<Lists.MarketList>> _infocusListStream = Stream.empty();
   Stream<List<Lists.MarketList>> get infocusListStream => _infocusListStream;
 
-  InfocusListBloc(this._iexApiProxy) {
+  StocksListBloc(this._aiProxy) {
     _infocusListStream =
-        _iexApiProxy.fetchAList(Lists.MarketListType.INFOCUS).asStream();
+        _aiProxy.fetchAList(Lists.MarketListType.STOCKS).asStream();
   }
 
   void refresh() {
     _infocusListStream = Stream.empty();
     _infocusListStream =
-        _iexApiProxy.fetchAList(Lists.MarketListType.INFOCUS).asStream();
+        _aiProxy.fetchAList(Lists.MarketListType.STOCKS).asStream();
   }
 }
 
 class LosersListBloc {
-  final IEX.IexApiProxy _iexApiProxy;
+  final Api.ApiReques _iexApiProxy;
   Stream<List<Lists.MarketList>> _losersListStream = Stream.empty();
   Stream<List<Lists.MarketList>> get losersListStream => _losersListStream;
   LosersListBloc(this._iexApiProxy) {

@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:yame/models/charts.dart' as Charts;
-import 'package:yame/network/iex_api_proxy.dart' as IEX;
+import 'package:trade_quotes/models/charts.dart' as Charts;
+import 'package:trade_quotes/network/api_reques.dart' as IEX;
 
 class ChartsBloc {
   final IEX.IexApiProxy _iexApiProxy;
