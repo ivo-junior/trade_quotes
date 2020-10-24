@@ -1,3 +1,23 @@
+import 'dart:async';
+import 'dart:ui';
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter_candlesticks/flutter_candlesticks.dart';
+import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
+import 'package:rxdart/rxdart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trade_quotes/data/repository.dart';
+import 'package:trade_quotes/models/ativo.dart';
+import 'package:trade_quotes/network/api_reques.dart';
+import 'package:trade_quotes/providers/api_provider.dart';
+
+import 'blocs/lists_bloc.dart';
+import 'models/charts.dart';
+import 'models/lists.dart';
+
 const double kOverlayBoxWidth = 160.0;
 const double kOverlayBoxHeight = 160.0;
 const double kOverlayCardWidth = 296.0;
@@ -7,10 +27,9 @@ void main() => runApp(ValuePeekApp());
 class ValuePeekApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return IexApiProvider(
-      sBloc: SectorBloc(IexApiProxy.getInstance()),
+    return ApiProvider(
       child: MaterialApp(
-          title: "Yame",
+          title: "Trade Quotes",
           routes: {'/sector': (_) => SectorInformation('Energy', 0.0)},
           theme: ThemeData(
               fontFamily: 'Montserrat',
@@ -71,26 +90,34 @@ class ValuePeekHome extends StatefulWidget {
 class ValuePeekHomeState extends State<ValuePeekHome>
     with TickerProviderStateMixin {
   final ScrollController scrollController = ScrollController();
-  Future searchAssets;
-  IexApiProxy proxy;
+  Future<List> searchAssets;
+  ApiReques proxy;
   TextEditingController _editingController;
   FocusNode _editFocusNode = FocusNode();
 
+  Repository _repository;
+
   Stream<List<dynamic>> searchItems = Stream.empty();
   Stream<String> _log = Stream.empty();
-  Stream<Quote> _searchQuoteStream = Stream.empty();
+  Stream<Ativo> _searchQuoteStream = Stream.empty();
 
   ReplaySubject<String> _query = ReplaySubject<String>(maxSize: 10);
   ReplaySubject<String> _quote = ReplaySubject<String>(maxSize: 1);
   Sink<String> get query => _query;
   List<dynamic> searchData;
 
+  Future<List> _getRepository() async {
+    _repository = Repository();
+    var list = await _repository.findAll();
+    return list;
+  }
+
   @override
   void initState() {
     super.initState();
-    proxy = IexApiProxy.getInstance();
-    searchAssets =
-        DefaultAssetBundle.of(context).loadString("assets/json/symbols.json");
+    proxy = ApiReques.getInstance();
+    searchAssets = _getRepository();
+    // .then((value) => searchAssets = value);
     searchItems = _query
         .distinct()
         .debounce(Duration(milliseconds: 500))
@@ -100,7 +127,7 @@ class ValuePeekHomeState extends State<ValuePeekHome>
         .withLatestFrom(_query.stream, (_, query) => "Resultados para: $query")
         .asBroadcastStream();
     searchAssets.then((d) {
-      searchData = json.decode(d);
+      searchData = d;
     });
   }
 
@@ -123,12 +150,10 @@ class ValuePeekHomeState extends State<ValuePeekHome>
 
   @override
   Widget build(BuildContext context) {
-    final SectorBloc sectorBloc = IexApiProvider.sectorBlocOf(context);
-    final ListsBloc listsBloc = IexApiProvider.listsBlocOf(context);
-    final LosersListBloc losersListBloc =
-        IexApiProvider.losersListBlocOf(context);
-    final InfocusListBloc infocusListBloc =
-        IexApiProvider.infocusListBlocOf(context);
+    final ListsBloc listsBloc = ApiProvider.listsBlocOf(context);
+    final LosersListBloc losersListBloc = ApiProvider.losersListBlocOf(context);
+    final StocksListBloc infocusListBloc =
+        ApiProvider.infocusListBlocOf(context);
 
     return Scaffold(
         backgroundColor: Theme.of(context).backgroundColor,
@@ -168,7 +193,6 @@ class ValuePeekHomeState extends State<ValuePeekHome>
               displacement: 100.0,
               onRefresh: () {
                 setState(() {
-                  sectorBloc.refresh();
                   listsBloc.refresh();
                   losersListBloc.refresh();
                   infocusListBloc.refresh();
@@ -211,11 +235,12 @@ class ValuePeekHomeState extends State<ValuePeekHome>
                                         alignment: Alignment.center,
                                         child: GradientColorCard(
                                           child: QuoteWidget(
+                                            ////////////////////////////////////////////////////////
                                             allowPushRoute: true,
                                             index: snapshot.data,
                                             focusNode: _editFocusNode,
                                             ifIsCrypto: Scaffold.of(con),
-                                            isCrypto: (snapshot.data as Quote)
+                                            isCrypto: (snapshot.data as Ativo)
                                                     .sector ==
                                                 "cryptocurrency",
                                           ),
@@ -262,7 +287,7 @@ class ValuePeekHomeState extends State<ValuePeekHome>
                                                       Stream.empty();
                                                   setState(() {
                                                     _searchQuoteStream = proxy
-                                                        .fetchSingleQuote(
+                                                        .fetchSingleAtivo(
                                                             indexedItem[
                                                                 'symbol'])
                                                         .asStream();
@@ -342,7 +367,7 @@ class ValuePeekHomeState extends State<ValuePeekHome>
                                                                   .centerLeft,
                                                               child: Text(
                                                                 indexedItem[
-                                                                    'name'],
+                                                                    'nomeAtivo'],
                                                                 style: TextStyle(
                                                                     color: Colors
                                                                         .black87,
@@ -389,7 +414,7 @@ class ValuePeekHomeState extends State<ValuePeekHome>
                                                       Stream.empty();
                                                   setState(() {
                                                     _searchQuoteStream = proxy
-                                                        .fetchSingleQuote(
+                                                        .fetchSingleAtivo(
                                                             indexedItem[
                                                                 'symbol'])
                                                         .asStream();
@@ -468,7 +493,7 @@ class ValuePeekHomeState extends State<ValuePeekHome>
                                                                   .centerLeft,
                                                               child: Text(
                                                                 indexedItem[
-                                                                    'name'],
+                                                                    'nomeAtivo'],
                                                                 style: TextStyle(
                                                                     color: Colors
                                                                         .black87,
@@ -587,11 +612,11 @@ class ValuePeekHomeState extends State<ValuePeekHome>
                   SliverPadding(padding: EdgeInsets.symmetric(vertical: 8.0)),
                   _titleSliverBoxSection(
                       "Ações", "Ações que se destacam essa semana!."),
-                  _streamHandlerSliverBoxSection(sectorBloc.sectorStream,
-                      (AsyncSnapshot data) {
-                    return sectorsListViewBuilder(
-                        data.data as List<SectorModel>);
-                  }),
+                  // _streamHandlerSliverBoxSection(sectorBloc.sectorStream,
+                  //     (AsyncSnapshot data) {
+                  //   return sectorsListViewBuilder(
+                  //       data.data as List<SectorModel>);
+                  // }),
                   SliverPadding(
                     padding: EdgeInsets.symmetric(vertical: 48.0),
                     sliver: SliverToBoxAdapter(
@@ -693,95 +718,95 @@ class ValuePeekHomeState extends State<ValuePeekHome>
         ));
   }
 
-  Widget sectorsListViewBuilder(List<SectorModel> data) {
-    return ListView.builder(
-      itemBuilder: (BuildContext c, int i) {
-        SectorModel index = data[i];
-        return Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(8.0),
-          child: InkWell(
-            onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (c) =>
-                      SectorInformation(index.name, index.performance)));
-            },
-            child: Stack(children: [
-              Container(
-                width: kOverlayBoxWidth,
-                margin:
-                    const EdgeInsets.only(right: 8.0, bottom: 4.0, top: 4.0),
-                decoration: BoxDecoration(
-                    color: Theme.of(context).accentColor,
-                    borderRadius: BorderRadius.circular(8.0),
-                    boxShadow: [
-                      BoxShadow(
-                          color: const Color.fromRGBO(0, 0, 0, 0.25),
-                          blurRadius: 6.0),
-                    ],
-                    image: DecorationImage(
-                        image: NetworkImage(
-                            "https://source.unsplash.com/200x200/?${index.name}"),
-                        alignment: Alignment.center,
-                        fit: BoxFit.cover)),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(8.0),
-                    decoration: BoxDecoration(
-                        color:
-                            index.performance < 0 ? Colors.red : Colors.green,
-                        borderRadius: BorderRadius.circular(4.0)),
-                    child: Text(
-                      "${(index.performance * 100).toStringAsFixed(2)}%",
-                      style: TextStyle(
-                          color: Colors.white70,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 20.0),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                child: Container(
-                  alignment: Alignment.bottomCenter,
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(8.0),
-                          bottomRight: Radius.circular(8.0)),
-                      color: Colors.white.withOpacity(0.7)),
-                  width: kOverlayBoxWidth,
-                  height: 40.0,
-                  child: Text(
-                    "${index.name}",
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                bottom: 4.0,
-              )
-            ]),
-          ),
-        );
-      },
-      itemCount: data.length,
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(left: 40.0),
-      scrollDirection: Axis.horizontal,
-    );
-  }
+  // Widget sectorsListViewBuilder(List<SectorModel> data) {
+  //   return ListView.builder(
+  //     itemBuilder: (BuildContext c, int i) {
+  //       SectorModel index = data[i];
+  //       return Material(
+  //         color: Colors.transparent,
+  //         borderRadius: BorderRadius.circular(8.0),
+  //         child: InkWell(
+  //           onTap: () {
+  //             Navigator.of(context).push(MaterialPageRoute(
+  //                 builder: (c) =>
+  //                     SectorInformation(index.name, index.performance)));
+  //           },
+  //           child: Stack(children: [
+  //             Container(
+  //               width: kOverlayBoxWidth,
+  //               margin:
+  //                   const EdgeInsets.only(right: 8.0, bottom: 4.0, top: 4.0),
+  //               decoration: BoxDecoration(
+  //                   color: Theme.of(context).accentColor,
+  //                   borderRadius: BorderRadius.circular(8.0),
+  //                   boxShadow: [
+  //                     BoxShadow(
+  //                         color: const Color.fromRGBO(0, 0, 0, 0.25),
+  //                         blurRadius: 6.0),
+  //                   ],
+  //                   image: DecorationImage(
+  //                       image: NetworkImage(
+  //                           "https://source.unsplash.com/200x200/?${index.name}"),
+  //                       alignment: Alignment.center,
+  //                       fit: BoxFit.cover)),
+  //               child: Center(
+  //                 child: Container(
+  //                   padding: const EdgeInsets.all(8.0),
+  //                   decoration: BoxDecoration(
+  //                       color:
+  //                           index.performance < 0 ? Colors.red : Colors.green,
+  //                       borderRadius: BorderRadius.circular(4.0)),
+  //                   child: Text(
+  //                     "${(index.performance * 100).toStringAsFixed(2)}%",
+  //                     style: TextStyle(
+  //                         color: Colors.white70,
+  //                         fontWeight: FontWeight.w400,
+  //                         fontSize: 20.0),
+  //                   ),
+  //                 ),
+  //               ),
+  //             ),
+  //             Positioned(
+  //               child: Container(
+  //                 alignment: Alignment.bottomCenter,
+  //                 padding: const EdgeInsets.symmetric(vertical: 8.0),
+  //                 decoration: BoxDecoration(
+  //                     borderRadius: BorderRadius.only(
+  //                         bottomLeft: Radius.circular(8.0),
+  //                         bottomRight: Radius.circular(8.0)),
+  //                     color: Colors.white.withOpacity(0.7)),
+  //                 width: kOverlayBoxWidth,
+  //                 height: 40.0,
+  //                 child: Text(
+  //                   "${index.name}",
+  //                   overflow: TextOverflow.ellipsis,
+  //                   maxLines: 1,
+  //                   textAlign: TextAlign.center,
+  //                   style: TextStyle(
+  //                     color: Colors.black87,
+  //                     fontSize: 16.0,
+  //                     fontWeight: FontWeight.bold,
+  //                   ),
+  //                 ),
+  //               ),
+  //               bottom: 4.0,
+  //             )
+  //           ]),
+  //         ),
+  //       );
+  //     },
+  //     itemCount: data.length,
+  //     physics: const BouncingScrollPhysics(),
+  //     padding: const EdgeInsets.only(left: 40.0),
+  //     scrollDirection: Axis.horizontal,
+  //   );
+  // }
 
   Widget _marketListBuilder(List<MarketList> gainList, BuildContext con) {
     return ListView.builder(
       itemCount: gainList.length,
       itemBuilder: (BuildContext c, int i) {
-        Quote index = (gainList[i].quote as Quote);
+        Ativo index = (gainList[i].quote as Ativo);
         return GradientColorCard(
             kColora: gainList[i].kColora,
             kColorb: gainList[i].kColorb,
@@ -1032,8 +1057,7 @@ class _SectorInformationState extends State<SectorInformation> {
   @override
   void initState() {
     super.initState();
-    _collectionsBloc =
-        CollectionsBloc(IexApiProxy.getInstance(), widget.sector);
+    _collectionsBloc = CollectionsBloc(ApiReques.getInstance(), widget.sector);
     _scrollController = ScrollController();
   }
 
@@ -1160,7 +1184,7 @@ class _SectorInformationState extends State<SectorInformation> {
                                   const EdgeInsets.symmetric(horizontal: 8.0),
                               sliver: SliverList(
                                 delegate: SliverChildBuilderDelegate((c, i) {
-                                  Quote q = snapshot.data[i] as Quote;
+                                  Ativo q = snapshot.data[i] as Ativo;
                                   return Center(
                                       child: Dismissible(
                                           key: Key(q.symbol),
@@ -1243,7 +1267,7 @@ class _SectorInformationState extends State<SectorInformation> {
 }
 
 class QuoteWidget extends StatelessWidget {
-  final Quote index;
+  final Ativo index;
   final FocusNode focusNode;
   final bool allowPushRoute;
   final bool isCrypto;
@@ -1269,8 +1293,8 @@ class QuoteWidget extends StatelessWidget {
               focusNode?.unfocus();
             }
             if (!isCrypto) {
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (c) => QuoteInformation(quote: index)));
+              // Navigator.of(context).push(MaterialPageRoute(
+              //     builder: (c) => QuoteInformation(quote: index)));
             } else {
               ifIsCrypto.showSnackBar(SnackBar(
                 content: Row(
@@ -1362,7 +1386,7 @@ class QuoteWidget extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.all(2.0),
                   child: Text(
-                    "\$${numToSimple(index.delayedPrice ?? index.latestPrice)}",
+                    "\$${index.delayedPrice ?? index.price}",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Colors.black87,
@@ -1382,11 +1406,12 @@ class QuoteWidget extends StatelessWidget {
                             const Spacer(),
                             CircleAvatar(
                               radius: 12.0,
-                              backgroundColor: (index.changePercent * 100) > 0
-                                  ? Colors.green
-                                  : Colors.red,
+                              backgroundColor:
+                                  (double.parse(index.changePercent) * 100) > 0
+                                      ? Colors.green
+                                      : Colors.red,
                               child: Icon(
-                                index.change > 0
+                                double.parse(index.change) > 0
                                     ? Icons.arrow_upward
                                     : Icons.arrow_downward,
                                 color: Colors.white,
@@ -1395,7 +1420,7 @@ class QuoteWidget extends StatelessWidget {
                             ),
                             //const Spacer(,),
                             Text(
-                              " ${(index.changePercent * 100) > 0 ? '+' : ''}${(index.changePercent * 100).toStringAsFixed(2)}%",
+                              " ${(double.parse(index.changePercent) * 100) > 0 ? '+' : ''}${(double.parse(index.changePercent) * 100).toStringAsFixed(2)}%",
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: Colors.black87,
@@ -1406,7 +1431,7 @@ class QuoteWidget extends StatelessWidget {
                             Container(
                                 alignment: Alignment.bottomCenter,
                                 child: Text(
-                                  "(${numToSimple(index.change)})",
+                                  "(${index.change})",
                                   textAlign: TextAlign.center,
                                   overflow: TextOverflow.fade,
                                   style: TextStyle(
@@ -1426,7 +1451,7 @@ class QuoteWidget extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.all(2.0),
                   child: Text(
-                    "P/E: ${numToSimple(index.peRatio)}",
+                    "P/E: ${index.peRatio}",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Colors.black87,
@@ -1438,7 +1463,7 @@ class QuoteWidget extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.all(2.0),
                   child: Text(
-                    "ALTA: \$${numToSimple(index.high)}",
+                    "ALTA: \$${index.high}",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Colors.black87,
@@ -1450,7 +1475,7 @@ class QuoteWidget extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.all(2.0),
                   child: Text(
-                    "BAIXA: \$${numToSimple(index.low)}",
+                    "BAIXA: \$${index.low}",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Colors.black87,
@@ -1469,7 +1494,7 @@ class QuoteWidget extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
                     Text(
-                      "M/CAP: ${numToSimple(index.marketCap)}",
+                      "M/CAP: N/A",
                       //textAlign: TextAlign.left,
                       style: TextStyle(
                           color: Colors.black87,
@@ -1530,1512 +1555,1512 @@ class QuoteWidget extends StatelessWidget {
   }
 }
 
-class QuoteInformation extends StatefulWidget {
-  final Quote quote;
+// class QuoteInformation extends StatefulWidget {
+//   final Ativo quote;
 
-  QuoteInformation({@required this.quote});
+//   QuoteInformation({@required this.quote});
 
-  @override
-  _QuoteInformationState createState() => _QuoteInformationState();
-}
+//   @override
+//   _QuoteInformationState createState() => _QuoteInformationState();
+// }
 
-class _QuoteInformationState extends State<QuoteInformation> {
-  ChartsBloc chartsBloc;
-  CompanyBloc companyBloc;
-  StatsBloc statsBloc;
-  PeersBloc peersBloc;
-  FinancialsBloc financialsBloc;
-  final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
-  // final DateFormat formatter = new DateFormat('yyyy-MM-dd');
-  ChartDurations _activechartDuration = ChartDurations.THREE_MONTHS;
-  double _lowerValue = 0.0;
-  bool isMissing = false;
+// class _QuoteInformationState extends State<QuoteInformation> {
+//   ChartsBloc chartsBloc;
+//   CompanyBloc companyBloc;
+//   StatsBloc statsBloc;
+//   PeersBloc peersBloc;
+//   FinancialsBloc financialsBloc;
+//   final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
+//   // final DateFormat formatter = new DateFormat('yyyy-MM-dd');
+//   ChartDurations _activechartDuration = ChartDurations.THREE_MONTHS;
+//   double _lowerValue = 0.0;
+//   bool isMissing = false;
 
-  final Map<String, ChartDurations> chartDatesMaps = {
-    '1D': ChartDurations.ONE_DAY,
-    '1M': ChartDurations.ONE_MONTH,
-    '3M': ChartDurations.THREE_MONTHS,
-    '6M': ChartDurations.SIX_MONTHS,
-    'YTD': ChartDurations.YEAR_TO_DATE,
-    '1Y': ChartDurations.ONE_YEAR,
-    '2Y': ChartDurations.TWO_YEAR,
-    '5Y': ChartDurations.FIVE_YEAR
-  };
+//   final Map<String, ChartDurations> chartDatesMaps = {
+//     '1D': ChartDurations.ONE_DAY,
+//     '1M': ChartDurations.ONE_MONTH,
+//     '3M': ChartDurations.THREE_MONTHS,
+//     '6M': ChartDurations.SIX_MONTHS,
+//     'YTD': ChartDurations.YEAR_TO_DATE,
+//     '1Y': ChartDurations.ONE_YEAR,
+//     '2Y': ChartDurations.TWO_YEAR,
+//     '5Y': ChartDurations.FIVE_YEAR
+//   };
 
-  final List<String> chartDates = [
-    '1D',
-    '1M',
-    '3M',
-    '6M',
-    'YTD',
-    '1Y',
-    '2Y',
-    '5Y',
-  ];
+//   final List<String> chartDates = [
+//     '1D',
+//     '1M',
+//     '3M',
+//     '6M',
+//     'YTD',
+//     '1Y',
+//     '2Y',
+//     '5Y',
+//   ];
 
-  @override
-  void initState() {
-    super.initState();
-    IexApiProxy proxy = IexApiProxy.getInstance();
-    chartsBloc = ChartsBloc(proxy, widget.quote.symbol);
-    companyBloc = CompanyBloc(proxy, widget.quote.symbol);
-    statsBloc = StatsBloc(proxy, widget.quote.symbol);
-    peersBloc = PeersBloc(proxy, widget.quote.symbol);
-    financialsBloc = FinancialsBloc(proxy, widget.quote.symbol);
-  }
+//   @override
+//   void initState() {
+//     super.initState();
+//     ApiReques proxy = ApiReques.getInstance();
+//     chartsBloc = ChartsBloc(proxy, widget.quote.symbol);
+//     companyBloc = CompanyBloc(proxy, widget.quote.symbol);
+//     statsBloc = StatsBloc(proxy, widget.quote.symbol);
+//     peersBloc = PeersBloc(proxy, widget.quote.symbol);
+//     financialsBloc = FinancialsBloc(proxy, widget.quote.symbol);
+//   }
 
-  void _launchURL(BuildContext context, String url) async {
-    try {
-      await launch(
-        url,
-        option: CustomTabsOption(
-          toolbarColor: Theme.of(context).primaryColor,
-          enableDefaultShare: true,
-          enableUrlBarHiding: true,
-          showPageTitle: true,
-          animation: CustomTabsAnimation.slideIn(),
-          // or user defined animation.
-          /*animation: new CustomTabsAnimation(
-          startEnter: 'slide_up',
-          startExit: 'android:anim/fade_out',
-          endEnter: 'android:anim/fade_in',
-          endExit: 'slide_down',
-        ),*/
-          extraCustomTabs: <String>[
-            // ref. https://play.google.com/store/apps/details?id=org.mozilla.firefox
-            'org.mozilla.firefox',
-            // ref. https://play.google.com/store/apps/details?id=com.microsoft.emmx
-            'com.microsoft.emmx',
-          ],
-        ),
-      );
-    } catch (e) {
-      // An exception is thrown if browser app is not installed on Android device.
-      debugPrint(e.toString());
-    }
-  }
+//   void _launchURL(BuildContext context, String url) async {
+//     try {
+//       await launch(
+//         url,
+//         option: CustomTabsOption(
+//           toolbarColor: Theme.of(context).primaryColor,
+//           enableDefaultShare: true,
+//           enableUrlBarHiding: true,
+//           showPageTitle: true,
+//           animation: CustomTabsAnimation.slideIn(),
+//           // or user defined animation.
+//           /*animation: new CustomTabsAnimation(
+//           startEnter: 'slide_up',
+//           startExit: 'android:anim/fade_out',
+//           endEnter: 'android:anim/fade_in',
+//           endExit: 'slide_down',
+//         ),*/
+//           extraCustomTabs: <String>[
+//             // ref. https://play.google.com/store/apps/details?id=org.mozilla.firefox
+//             'org.mozilla.firefox',
+//             // ref. https://play.google.com/store/apps/details?id=com.microsoft.emmx
+//             'com.microsoft.emmx',
+//           ],
+//         ),
+//       );
+//     } catch (e) {
+//       // An exception is thrown if browser app is not installed on Android device.
+//       debugPrint(e.toString());
+//     }
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).backgroundColor,
-      child: SafeArea(
-        child: Scaffold(
-            backgroundColor: Theme.of(context).backgroundColor,
-            key: _scaffoldKey,
-            body: NestedScrollView(
-                headerSliverBuilder: (_, __) {
-                  return [
-                    //  _titleSliverBoxSection("Charts", "Historical data for charts"),
-                    SliverAppBar(
-                      flexibleSpace: ListTile(
-                        trailing: IconButton(
-                          icon: Icon(
-                            Icons.home,
-                            color: Colors.white,
-                          ),
-                          onPressed: () {
-                            Navigator.of(context)
-                                .popUntil((p) => !p.navigator.canPop());
-                          },
-                        ),
-                      ),
-                    ),
-                  ];
-                },
-                body: CustomScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  slivers: <Widget>[
-                    _titleSliverBoxSection("Profile",
-                        "Dados Históricos para ${widget.quote.symbol}"),
-                    SliverToBoxAdapter(
-                        child: Container(
-                      height: 200,
-                      child: StreamBuilder(
-                        builder: (con, snapshot) {
-                          return AnimatedCrossFade(
-                              firstCurve: Curves.fastOutSlowIn,
-                              secondCurve: Curves.fastOutSlowIn,
-                              firstChild: Column(
-                                  mainAxisSize: MainAxisSize.max,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    Container(
-                                      padding: EdgeInsets.all(8.0),
-                                      child: (snapshot.connectionState ==
-                                              ConnectionState.none)
-                                          ? IconButton(
-                                              icon: const Icon(
-                                                Icons.refresh,
-                                                color: Colors.white70,
-                                                size: 32.0,
-                                              ),
-                                              onPressed: () {
-                                                chartsBloc
-                                                    .fetchDifferentDuration(
-                                                        ChartDurations
-                                                            .THREE_MONTHS);
-                                              },
-                                            )
-                                          : const Center(
-                                              child:
-                                                  const CircularProgressIndicator()),
-                                    )
-                                  ]),
-                              secondChild: (snapshot.hasData
-                                  ? Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      mainAxisSize: MainAxisSize.max,
-                                      children: <Widget>[
-                                        Container(
-                                          height: 160,
-                                          margin: EdgeInsets.all(8.0),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black54,
-                                            borderRadius:
-                                                BorderRadius.circular(8.0),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                  color: Color.fromRGBO(
-                                                      0, 0, 0, 0.35),
-                                                  blurRadius: 8.0),
-                                            ],
-                                          ),
-                                          padding: EdgeInsets.symmetric(
-                                              vertical: 16.0, horizontal: 8.0),
-                                          child: OHLCVGraph(
-                                              data:
-                                                  (snapshot.data as ChartModel)
-                                                      .chartToOHLC(),
-                                              enableGridLines: true,
-                                              volumeProp: 0.2),
-                                        ),
-                                        Container(
-                                            margin: EdgeInsets.symmetric(
-                                                horizontal: 8.0),
-                                            padding:
-                                                EdgeInsets.only(right: 20.0),
-                                            height: 20.0,
-                                            decoration: BoxDecoration(
-                                                color: Colors.white70,
-                                                borderRadius: BorderRadius.all(
-                                                    Radius.circular(4.0))),
-                                            child: Slider(
-                                              value: _lowerValue,
-                                              onChanged: (d) {
-                                                setState(() {
-                                                  _lowerValue = d;
-                                                });
-                                              },
-                                              label:
-                                                  "${(snapshot.data as ChartModel).chartData[(_lowerValue.toInt())].label}: \$${numToSimple((snapshot.data as ChartModel).chartData[(_lowerValue.toInt())].close) ?? 'N/A'}",
-                                              max: (snapshot.data as ChartModel)
-                                                          .chartData
-                                                          .length >
-                                                      0
-                                                  ? ((snapshot.data
-                                                                  as ChartModel)
-                                                              .chartData
-                                                              .length -
-                                                          1)
-                                                      .toDouble()
-                                                  : 0,
-                                              min: 0,
-                                              divisions:
-                                                  ((snapshot.data as ChartModel)
-                                                      .chartData
-                                                      .length),
-                                              activeColor:
-                                                  Theme.of(context).accentColor,
-                                            ))
-                                      ],
-                                    )
-                                  : Column(
-                                      mainAxisSize: MainAxisSize.max,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.refresh,
-                                              color: Colors.white70,
-                                              size: 32.0,
-                                            ),
-                                            onPressed: () {
-                                              setState(() {
-                                                chartsBloc
-                                                    .fetchDifferentDuration(
-                                                        ChartDurations
-                                                            .THREE_MONTHS);
-                                              });
-                                            },
-                                          ),
-                                          Container(
-                                            padding: EdgeInsets.all(8.0),
-                                            child: (snapshot.hasError)
-                                                ? Text(
-                                                    "Erro de recuperação de dados, toque para tentar novamente",
-                                                    textAlign: TextAlign.center,
-                                                  )
-                                                : const Center(
-                                                    child: Text(
-                                                        "Problemas de conexão")),
-                                          )
-                                        ])),
-                              crossFadeState: (snapshot.connectionState !=
-                                      ConnectionState.done)
-                                  ? CrossFadeState.showFirst
-                                  : CrossFadeState.showSecond,
-                              duration: Duration(milliseconds: 800));
-                        },
-                        stream: chartsBloc.chartsStream,
-                      ),
-                    )),
-                    SliverToBoxAdapter(
-                      child: Container(
-                        height: 50.0,
-                        alignment: Alignment.center,
-                        margin: EdgeInsets.all(8.0),
-                        child: Wrap(
-                          children: List.generate(
-                              chartDates.length,
-                              (index) => Container(
-                                  constraints: BoxConstraints(maxWidth: 64.0),
-                                  margin: EdgeInsets.symmetric(horizontal: 2.0),
-                                  child: FlatButton(
-                                      color:
-                                          chartDatesMaps[chartDates[index]] ==
-                                                  _activechartDuration
-                                              ? Theme.of(context).accentColor
-                                              : Colors.white,
-                                      onPressed: () {
-                                        setState(() {
-                                          if (chartDatesMaps[
-                                                  chartDates[index]] ==
-                                              ChartDurations.ONE_YEAR) {
-                                            chartsBloc
-                                                .fetchDifferentDurationIntervals(
-                                                    chartDatesMaps[
-                                                        chartDates[index]],
-                                                    7);
-                                          } else if (chartDatesMaps[
-                                                  chartDates[index]] ==
-                                              ChartDurations.FIVE_YEAR) {
-                                            chartsBloc
-                                                .fetchDifferentDurationIntervals(
-                                                    chartDatesMaps[
-                                                        chartDates[index]],
-                                                    7);
-                                          } else {
-                                            chartsBloc.fetchDifferentDuration(
-                                                chartDatesMaps[
-                                                    chartDates[index]]);
-                                          }
-                                          _activechartDuration =
-                                              chartDatesMaps[chartDates[index]];
-                                          _lowerValue = 0;
-                                        });
-                                      },
-                                      child: Container(
-                                        padding: EdgeInsets.all(2.0),
-                                        child: Text(
-                                          chartDates[index],
-                                          style: TextStyle(fontSize: 12.0),
-                                        ),
-                                      )))),
-                        ),
-                      ),
-                    ),
-                    SliverToBoxAdapter(
-                        child: Container(
-                      alignment: Alignment.center,
-                      padding: EdgeInsets.all(8.0),
-                      child: GradientColorCard(
-                        child: QuoteWidget(
-                          index: widget.quote,
-                          allowPushRoute: false,
-                          isCrypto: widget.quote.sector == "cryptocurrency",
-                          ifIsCrypto: _scaffoldKey.currentState,
-                        ),
-                        kColora: widget.quote.kColora,
-                        kColorb: widget.quote.kColorb,
-                      ),
-                    )),
-                    SliverToBoxAdapter(
-                      child: Container(
-                        //height: 250.0,
-                        margin: EdgeInsets.all(8.0),
-                        child: Column(
-                          children: <Widget>[
-                            StreamBuilder(
-                                stream: companyBloc.infoStream,
-                                builder: (_, snapshot) {
-                                  return AnimatedCrossFade(
-                                      firstCurve: Curves.fastOutSlowIn,
-                                      secondCurve: Curves.fastOutSlowIn,
-                                      firstChild: Column(
-                                          mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
-                                          children: [
-                                            Container(
-                                              padding: EdgeInsets.all(8.0),
-                                              child: (snapshot
-                                                          .connectionState ==
-                                                      ConnectionState.none)
-                                                  ? IconButton(
-                                                      icon: Icon(Icons.refresh,
-                                                          size: 32.0,
-                                                          color:
-                                                              Colors.white70),
-                                                      onPressed: () {
-                                                        setState(() {
-                                                          companyBloc.refresh();
-                                                        });
-                                                      },
-                                                    )
-                                                  : const Center(
-                                                      child:
-                                                          const CircularProgressIndicator()),
-                                            )
-                                          ]),
-                                      secondChild: (snapshot.hasData
-                                          ? Wrap(
-                                              spacing: 8.0,
-                                              runSpacing: 8.0,
-                                              alignment: WrapAlignment.center,
-                                              children: <Widget>[
-                                                Container(
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  width: 200.0,
-                                                  child: _titledColumn(
-                                                    "Descrição",
-                                                    (snapshot.data
-                                                                as CompanyModel)
-                                                            .description
-                                                            .isEmpty
-                                                        ? "Sem descrição disponível"
-                                                        : (snapshot.data
-                                                                as CompanyModel)
-                                                            .description,
-                                                  ),
-                                                ),
-                                                Container(
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  width: 110.0,
-                                                  child: Column(
-                                                    children: <Widget>[
-                                                      Text(
-                                                        "Avg Volume",
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        maxLines: 1,
-                                                        style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold),
-                                                      ),
-                                                      Divider(
-                                                        color: Colors.white,
-                                                      ),
-                                                      Text(
-                                                        numToSimple(widget.quote
-                                                            .avgTotalVolume),
-                                                        maxLines: 9,
-                                                        textAlign:
-                                                            TextAlign.justify,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: TextStyle(
-                                                            color:
-                                                                Colors.white),
-                                                      ),
-                                                      Padding(
-                                                          padding: EdgeInsets
-                                                              .symmetric(
-                                                                  vertical:
-                                                                      4.0)),
-                                                      Text(
-                                                        "Abertura",
-                                                        style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold),
-                                                      ),
-                                                      Divider(
-                                                        color: Colors.white,
-                                                      ),
-                                                      Text(
-                                                        "\$${numToSimple(widget.quote.open)}",
-                                                        maxLines: 9,
-                                                        textAlign:
-                                                            TextAlign.justify,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: TextStyle(
-                                                            color:
-                                                                Colors.white),
-                                                      ),
-                                                      Padding(
-                                                          padding: EdgeInsets
-                                                              .symmetric(
-                                                                  vertical:
-                                                                      4.0)),
-                                                      Text(
-                                                        "Fechamento",
-                                                        style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold),
-                                                      ),
-                                                      Divider(
-                                                        color: Colors.white,
-                                                      ),
-                                                      Text(
-                                                        "\$${numToSimple(widget.quote.close)}",
-                                                        maxLines: 9,
-                                                        //textAlign: TextAlign.justify,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: TextStyle(
-                                                            color:
-                                                                Colors.white),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                Container(
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  width: 80.0,
-                                                  child: Column(
-                                                    mainAxisSize:
-                                                        MainAxisSize.max,
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment.end,
-                                                    children: <Widget>[
-                                                      Text(
-                                                        "Tempo aberto",
-                                                        style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold),
-                                                      ),
-                                                      Divider(
-                                                        color: Colors.white,
-                                                      ),
-                                                      Text(
-                                                        // "${widget.quote.openTime.day}/${widget.quote.openTime.month}/${widget.quote.openTime.year}",
-                                                        "Instável!",
-                                                        maxLines: 9,
-                                                        textAlign:
-                                                            TextAlign.justify,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: TextStyle(
-                                                            color:
-                                                                Colors.white),
-                                                      ),
-                                                      Padding(
-                                                          padding: EdgeInsets
-                                                              .symmetric(
-                                                                  vertical:
-                                                                      4.0)),
-                                                      Text(
-                                                        "Prev. fechamento",
-                                                        style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold),
-                                                      ),
-                                                      Divider(
-                                                        color: Colors.white,
-                                                      ),
-                                                      Text(
-                                                        //"${widget.quote.closeTime.day}/${widget.quote.closeTime.month}/${widget.quote.closeTime.year}",
-                                                        "Instável",
-                                                        maxLines: 9,
-                                                        textAlign:
-                                                            TextAlign.justify,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: TextStyle(
-                                                            color:
-                                                                Colors.white),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                Container(
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  width: 200.0,
-                                                  child: Column(
-                                                    children: <Widget>[
-                                                      Text(
-                                                        "CEO",
-                                                        style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold),
-                                                      ),
-                                                      Divider(
-                                                        color: Colors.white,
-                                                      ),
-                                                      InkWell(
-                                                          child: RichText(
-                                                        text: TextSpan(
-                                                            text: (snapshot.data
-                                                                    as CompanyModel)
-                                                                .ceo,
-                                                            style: TextStyle(
-                                                                color: Colors
-                                                                    .white,
-                                                                fontSize: 12.0,
-                                                                fontFamily:
-                                                                    "Montserrat",
-                                                                decoration:
-                                                                    TextDecoration
-                                                                        .underline),
-                                                            recognizer:
-                                                                TapGestureRecognizer()
-                                                                  ..onTap = () {
-                                                                    String uri =
-                                                                        "https://www.google.com/search?q=${(snapshot.data as CompanyModel).ceo.split(' ').join('+')}";
+//   @override
+//   Widget build(BuildContext context) {
+//     return Material(
+//       color: Theme.of(context).backgroundColor,
+//       child: SafeArea(
+//         child: Scaffold(
+//             backgroundColor: Theme.of(context).backgroundColor,
+//             key: _scaffoldKey,
+//             body: NestedScrollView(
+//                 headerSliverBuilder: (_, __) {
+//                   return [
+//                     //  _titleSliverBoxSection("Charts", "Historical data for charts"),
+//                     SliverAppBar(
+//                       flexibleSpace: ListTile(
+//                         trailing: IconButton(
+//                           icon: Icon(
+//                             Icons.home,
+//                             color: Colors.white,
+//                           ),
+//                           onPressed: () {
+//                             Navigator.of(context)
+//                                 .popUntil((p) => !p.navigator.canPop());
+//                           },
+//                         ),
+//                       ),
+//                     ),
+//                   ];
+//                 },
+//                 body: CustomScrollView(
+//                   physics: const BouncingScrollPhysics(),
+//                   slivers: <Widget>[
+//                     _titleSliverBoxSection("Profile",
+//                         "Dados Históricos para ${widget.quote.symbol}"),
+//                     SliverToBoxAdapter(
+//                         child: Container(
+//                       height: 200,
+//                       child: StreamBuilder(
+//                         builder: (con, snapshot) {
+//                           return AnimatedCrossFade(
+//                               firstCurve: Curves.fastOutSlowIn,
+//                               secondCurve: Curves.fastOutSlowIn,
+//                               firstChild: Column(
+//                                   mainAxisSize: MainAxisSize.max,
+//                                   mainAxisAlignment: MainAxisAlignment.center,
+//                                   crossAxisAlignment:
+//                                       CrossAxisAlignment.stretch,
+//                                   children: [
+//                                     Container(
+//                                       padding: EdgeInsets.all(8.0),
+//                                       child: (snapshot.connectionState ==
+//                                               ConnectionState.none)
+//                                           ? IconButton(
+//                                               icon: const Icon(
+//                                                 Icons.refresh,
+//                                                 color: Colors.white70,
+//                                                 size: 32.0,
+//                                               ),
+//                                               onPressed: () {
+//                                                 chartsBloc
+//                                                     .fetchDifferentDuration(
+//                                                         ChartDurations
+//                                                             .THREE_MONTHS);
+//                                               },
+//                                             )
+//                                           : const Center(
+//                                               child:
+//                                                   const CircularProgressIndicator()),
+//                                     )
+//                                   ]),
+//                               secondChild: (snapshot.hasData
+//                                   ? Column(
+//                                       mainAxisAlignment:
+//                                           MainAxisAlignment.spaceBetween,
+//                                       mainAxisSize: MainAxisSize.max,
+//                                       children: <Widget>[
+//                                         Container(
+//                                           height: 160,
+//                                           margin: EdgeInsets.all(8.0),
+//                                           decoration: BoxDecoration(
+//                                             color: Colors.black54,
+//                                             borderRadius:
+//                                                 BorderRadius.circular(8.0),
+//                                             boxShadow: [
+//                                               BoxShadow(
+//                                                   color: Color.fromRGBO(
+//                                                       0, 0, 0, 0.35),
+//                                                   blurRadius: 8.0),
+//                                             ],
+//                                           ),
+//                                           padding: EdgeInsets.symmetric(
+//                                               vertical: 16.0, horizontal: 8.0),
+//                                           child: OHLCVGraph(
+//                                               data:
+//                                                   (snapshot.data as ChartModel)
+//                                                       .chartToOHLC(),
+//                                               enableGridLines: true,
+//                                               volumeProp: 0.2),
+//                                         ),
+//                                         Container(
+//                                             margin: EdgeInsets.symmetric(
+//                                                 horizontal: 8.0),
+//                                             padding:
+//                                                 EdgeInsets.only(right: 20.0),
+//                                             height: 20.0,
+//                                             decoration: BoxDecoration(
+//                                                 color: Colors.white70,
+//                                                 borderRadius: BorderRadius.all(
+//                                                     Radius.circular(4.0))),
+//                                             child: Slider(
+//                                               value: _lowerValue,
+//                                               onChanged: (d) {
+//                                                 setState(() {
+//                                                   _lowerValue = d;
+//                                                 });
+//                                               },
+//                                               label:
+//                                                   "${(snapshot.data as ChartModel).chartData[(_lowerValue.toInt())].label}: \$${numToSimple((snapshot.data as ChartModel).chartData[(_lowerValue.toInt())].close) ?? 'N/A'}",
+//                                               max: (snapshot.data as ChartModel)
+//                                                           .chartData
+//                                                           .length >
+//                                                       0
+//                                                   ? ((snapshot.data
+//                                                                   as ChartModel)
+//                                                               .chartData
+//                                                               .length -
+//                                                           1)
+//                                                       .toDouble()
+//                                                   : 0,
+//                                               min: 0,
+//                                               divisions:
+//                                                   ((snapshot.data as ChartModel)
+//                                                       .chartData
+//                                                       .length),
+//                                               activeColor:
+//                                                   Theme.of(context).accentColor,
+//                                             ))
+//                                       ],
+//                                     )
+//                                   : Column(
+//                                       mainAxisSize: MainAxisSize.max,
+//                                       mainAxisAlignment:
+//                                           MainAxisAlignment.center,
+//                                       crossAxisAlignment:
+//                                           CrossAxisAlignment.stretch,
+//                                       children: [
+//                                           IconButton(
+//                                             icon: const Icon(
+//                                               Icons.refresh,
+//                                               color: Colors.white70,
+//                                               size: 32.0,
+//                                             ),
+//                                             onPressed: () {
+//                                               setState(() {
+//                                                 chartsBloc
+//                                                     .fetchDifferentDuration(
+//                                                         ChartDurations
+//                                                             .THREE_MONTHS);
+//                                               });
+//                                             },
+//                                           ),
+//                                           Container(
+//                                             padding: EdgeInsets.all(8.0),
+//                                             child: (snapshot.hasError)
+//                                                 ? Text(
+//                                                     "Erro de recuperação de dados, toque para tentar novamente",
+//                                                     textAlign: TextAlign.center,
+//                                                   )
+//                                                 : const Center(
+//                                                     child: Text(
+//                                                         "Problemas de conexão")),
+//                                           )
+//                                         ])),
+//                               crossFadeState: (snapshot.connectionState !=
+//                                       ConnectionState.done)
+//                                   ? CrossFadeState.showFirst
+//                                   : CrossFadeState.showSecond,
+//                               duration: Duration(milliseconds: 800));
+//                         },
+//                         stream: chartsBloc.chartsStream,
+//                       ),
+//                     )),
+//                     SliverToBoxAdapter(
+//                       child: Container(
+//                         height: 50.0,
+//                         alignment: Alignment.center,
+//                         margin: EdgeInsets.all(8.0),
+//                         child: Wrap(
+//                           children: List.generate(
+//                               chartDates.length,
+//                               (index) => Container(
+//                                   constraints: BoxConstraints(maxWidth: 64.0),
+//                                   margin: EdgeInsets.symmetric(horizontal: 2.0),
+//                                   child: FlatButton(
+//                                       color:
+//                                           chartDatesMaps[chartDates[index]] ==
+//                                                   _activechartDuration
+//                                               ? Theme.of(context).accentColor
+//                                               : Colors.white,
+//                                       onPressed: () {
+//                                         setState(() {
+//                                           if (chartDatesMaps[
+//                                                   chartDates[index]] ==
+//                                               ChartDurations.ONE_YEAR) {
+//                                             chartsBloc
+//                                                 .fetchDifferentDurationIntervals(
+//                                                     chartDatesMaps[
+//                                                         chartDates[index]],
+//                                                     7);
+//                                           } else if (chartDatesMaps[
+//                                                   chartDates[index]] ==
+//                                               ChartDurations.FIVE_YEAR) {
+//                                             chartsBloc
+//                                                 .fetchDifferentDurationIntervals(
+//                                                     chartDatesMaps[
+//                                                         chartDates[index]],
+//                                                     7);
+//                                           } else {
+//                                             chartsBloc.fetchDifferentDuration(
+//                                                 chartDatesMaps[
+//                                                     chartDates[index]]);
+//                                           }
+//                                           _activechartDuration =
+//                                               chartDatesMaps[chartDates[index]];
+//                                           _lowerValue = 0;
+//                                         });
+//                                       },
+//                                       child: Container(
+//                                         padding: EdgeInsets.all(2.0),
+//                                         child: Text(
+//                                           chartDates[index],
+//                                           style: TextStyle(fontSize: 12.0),
+//                                         ),
+//                                       )))),
+//                         ),
+//                       ),
+//                     ),
+//                     SliverToBoxAdapter(
+//                         child: Container(
+//                       alignment: Alignment.center,
+//                       padding: EdgeInsets.all(8.0),
+//                       child: GradientColorCard(
+//                         child: QuoteWidget(
+//                           index: widget.quote,
+//                           allowPushRoute: false,
+//                           isCrypto: widget.quote.sector == "cryptocurrency",
+//                           ifIsCrypto: _scaffoldKey.currentState,
+//                         ),
+//                         kColora: widget.quote.kColora,
+//                         kColorb: widget.quote.kColorb,
+//                       ),
+//                     )),
+//                     SliverToBoxAdapter(
+//                       child: Container(
+//                         //height: 250.0,
+//                         margin: EdgeInsets.all(8.0),
+//                         child: Column(
+//                           children: <Widget>[
+//                             StreamBuilder(
+//                                 stream: companyBloc.infoStream,
+//                                 builder: (_, snapshot) {
+//                                   return AnimatedCrossFade(
+//                                       firstCurve: Curves.fastOutSlowIn,
+//                                       secondCurve: Curves.fastOutSlowIn,
+//                                       firstChild: Column(
+//                                           mainAxisSize: MainAxisSize.max,
+//                                           mainAxisAlignment:
+//                                               MainAxisAlignment.center,
+//                                           crossAxisAlignment:
+//                                               CrossAxisAlignment.stretch,
+//                                           children: [
+//                                             Container(
+//                                               padding: EdgeInsets.all(8.0),
+//                                               child: (snapshot
+//                                                           .connectionState ==
+//                                                       ConnectionState.none)
+//                                                   ? IconButton(
+//                                                       icon: Icon(Icons.refresh,
+//                                                           size: 32.0,
+//                                                           color:
+//                                                               Colors.white70),
+//                                                       onPressed: () {
+//                                                         setState(() {
+//                                                           companyBloc.refresh();
+//                                                         });
+//                                                       },
+//                                                     )
+//                                                   : const Center(
+//                                                       child:
+//                                                           const CircularProgressIndicator()),
+//                                             )
+//                                           ]),
+//                                       secondChild: (snapshot.hasData
+//                                           ? Wrap(
+//                                               spacing: 8.0,
+//                                               runSpacing: 8.0,
+//                                               alignment: WrapAlignment.center,
+//                                               children: <Widget>[
+//                                                 Container(
+//                                                   alignment:
+//                                                       Alignment.centerLeft,
+//                                                   width: 200.0,
+//                                                   child: _titledColumn(
+//                                                     "Descrição",
+//                                                     (snapshot.data
+//                                                                 as CompanyModel)
+//                                                             .description
+//                                                             .isEmpty
+//                                                         ? "Sem descrição disponível"
+//                                                         : (snapshot.data
+//                                                                 as CompanyModel)
+//                                                             .description,
+//                                                   ),
+//                                                 ),
+//                                                 Container(
+//                                                   alignment:
+//                                                       Alignment.centerLeft,
+//                                                   width: 110.0,
+//                                                   child: Column(
+//                                                     children: <Widget>[
+//                                                       Text(
+//                                                         "Avg Volume",
+//                                                         overflow: TextOverflow
+//                                                             .ellipsis,
+//                                                         maxLines: 1,
+//                                                         style: TextStyle(
+//                                                             color: Colors.white,
+//                                                             fontWeight:
+//                                                                 FontWeight
+//                                                                     .bold),
+//                                                       ),
+//                                                       Divider(
+//                                                         color: Colors.white,
+//                                                       ),
+//                                                       Text(
+//                                                         widget.quote
+//                                                             .avgTotalVolume,
+//                                                         maxLines: 9,
+//                                                         textAlign:
+//                                                             TextAlign.justify,
+//                                                         overflow: TextOverflow
+//                                                             .ellipsis,
+//                                                         style: TextStyle(
+//                                                             color:
+//                                                                 Colors.white),
+//                                                       ),
+//                                                       Padding(
+//                                                           padding: EdgeInsets
+//                                                               .symmetric(
+//                                                                   vertical:
+//                                                                       4.0)),
+//                                                       Text(
+//                                                         "Abertura",
+//                                                         style: TextStyle(
+//                                                             color: Colors.white,
+//                                                             fontWeight:
+//                                                                 FontWeight
+//                                                                     .bold),
+//                                                       ),
+//                                                       Divider(
+//                                                         color: Colors.white,
+//                                                       ),
+//                                                       Text(
+//                                                         "\$${numToSimple(widget.quote.open)}",
+//                                                         maxLines: 9,
+//                                                         textAlign:
+//                                                             TextAlign.justify,
+//                                                         overflow: TextOverflow
+//                                                             .ellipsis,
+//                                                         style: TextStyle(
+//                                                             color:
+//                                                                 Colors.white),
+//                                                       ),
+//                                                       Padding(
+//                                                           padding: EdgeInsets
+//                                                               .symmetric(
+//                                                                   vertical:
+//                                                                       4.0)),
+//                                                       Text(
+//                                                         "Fechamento",
+//                                                         style: TextStyle(
+//                                                             color: Colors.white,
+//                                                             fontWeight:
+//                                                                 FontWeight
+//                                                                     .bold),
+//                                                       ),
+//                                                       Divider(
+//                                                         color: Colors.white,
+//                                                       ),
+//                                                       Text(
+//                                                         "\$${numToSimple(widget.quote.close)}",
+//                                                         maxLines: 9,
+//                                                         //textAlign: TextAlign.justify,
+//                                                         overflow: TextOverflow
+//                                                             .ellipsis,
+//                                                         style: TextStyle(
+//                                                             color:
+//                                                                 Colors.white),
+//                                                       ),
+//                                                     ],
+//                                                   ),
+//                                                 ),
+//                                                 Container(
+//                                                   alignment:
+//                                                       Alignment.centerLeft,
+//                                                   width: 80.0,
+//                                                   child: Column(
+//                                                     mainAxisSize:
+//                                                         MainAxisSize.max,
+//                                                     mainAxisAlignment:
+//                                                         MainAxisAlignment.end,
+//                                                     children: <Widget>[
+//                                                       Text(
+//                                                         "Tempo aberto",
+//                                                         style: TextStyle(
+//                                                             color: Colors.white,
+//                                                             fontWeight:
+//                                                                 FontWeight
+//                                                                     .bold),
+//                                                       ),
+//                                                       Divider(
+//                                                         color: Colors.white,
+//                                                       ),
+//                                                       Text(
+//                                                         // "${widget.quote.openTime.day}/${widget.quote.openTime.month}/${widget.quote.openTime.year}",
+//                                                         "Instável!",
+//                                                         maxLines: 9,
+//                                                         textAlign:
+//                                                             TextAlign.justify,
+//                                                         overflow: TextOverflow
+//                                                             .ellipsis,
+//                                                         style: TextStyle(
+//                                                             color:
+//                                                                 Colors.white),
+//                                                       ),
+//                                                       Padding(
+//                                                           padding: EdgeInsets
+//                                                               .symmetric(
+//                                                                   vertical:
+//                                                                       4.0)),
+//                                                       Text(
+//                                                         "Prev. fechamento",
+//                                                         style: TextStyle(
+//                                                             color: Colors.white,
+//                                                             fontWeight:
+//                                                                 FontWeight
+//                                                                     .bold),
+//                                                       ),
+//                                                       Divider(
+//                                                         color: Colors.white,
+//                                                       ),
+//                                                       Text(
+//                                                         //"${widget.quote.closeTime.day}/${widget.quote.closeTime.month}/${widget.quote.closeTime.year}",
+//                                                         "Instável",
+//                                                         maxLines: 9,
+//                                                         textAlign:
+//                                                             TextAlign.justify,
+//                                                         overflow: TextOverflow
+//                                                             .ellipsis,
+//                                                         style: TextStyle(
+//                                                             color:
+//                                                                 Colors.white),
+//                                                       ),
+//                                                     ],
+//                                                   ),
+//                                                 ),
+//                                                 Container(
+//                                                   alignment:
+//                                                       Alignment.centerLeft,
+//                                                   width: 200.0,
+//                                                   child: Column(
+//                                                     children: <Widget>[
+//                                                       Text(
+//                                                         "CEO",
+//                                                         style: TextStyle(
+//                                                             color: Colors.white,
+//                                                             fontWeight:
+//                                                                 FontWeight
+//                                                                     .bold),
+//                                                       ),
+//                                                       Divider(
+//                                                         color: Colors.white,
+//                                                       ),
+//                                                       InkWell(
+//                                                           child: RichText(
+//                                                         text: TextSpan(
+//                                                             text: (snapshot.data
+//                                                                     as CompanyModel)
+//                                                                 .ceo,
+//                                                             style: TextStyle(
+//                                                                 color: Colors
+//                                                                     .white,
+//                                                                 fontSize: 12.0,
+//                                                                 fontFamily:
+//                                                                     "Montserrat",
+//                                                                 decoration:
+//                                                                     TextDecoration
+//                                                                         .underline),
+//                                                             recognizer:
+//                                                                 TapGestureRecognizer()
+//                                                                   ..onTap = () {
+//                                                                     String uri =
+//                                                                         "https://www.google.com/search?q=${(snapshot.data as CompanyModel).ceo.split(' ').join('+')}";
 
-                                                                    _launchURL(
-                                                                        context,
-                                                                        uri);
-                                                                  }),
-                                                        maxLines: 9,
-                                                        textAlign:
-                                                            TextAlign.justify,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                      )),
-                                                      Padding(
-                                                          padding: EdgeInsets
-                                                              .symmetric(
-                                                                  vertical:
-                                                                      4.0)),
-                                                      Text(
-                                                        "Website",
-                                                        style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold),
-                                                      ),
-                                                      Divider(
-                                                        color: Colors.white,
-                                                      ),
-                                                      RichText(
-                                                        text: TextSpan(
-                                                            text: (snapshot.data
-                                                                    as CompanyModel)
-                                                                .website,
-                                                            recognizer:
-                                                                TapGestureRecognizer()
-                                                                  ..onTap = () {
-                                                                    _launchURL(
-                                                                        context,
-                                                                        (snapshot.data
-                                                                                as CompanyModel)
-                                                                            .website);
-                                                                  },
-                                                            style: TextStyle(
-                                                                color: Colors
-                                                                    .white,
-                                                                fontFamily:
-                                                                    "Montserrat",
-                                                                fontSize: 12.0,
-                                                                decoration:
-                                                                    TextDecoration
-                                                                        .underline)),
-                                                        maxLines: 9,
-                                                        textAlign:
-                                                            TextAlign.justify,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                Container(
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  width: 110.0,
-                                                  child: Column(
-                                                    children: <Widget>[
-                                                      Padding(
-                                                          padding: EdgeInsets
-                                                              .symmetric(
-                                                                  vertical:
-                                                                      4.0)),
-                                                      Text(
-                                                        "Sector",
-                                                        style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold),
-                                                      ),
-                                                      Divider(
-                                                        color: Colors.white,
-                                                      ),
-                                                      Text(
-                                                        snapshot.data.sector,
-                                                        maxLines: 9,
-                                                        textAlign:
-                                                            TextAlign.justify,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: TextStyle(
-                                                            color:
-                                                                Colors.white),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            )
-                                          : Column(
-                                              mainAxisSize: MainAxisSize.max,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.stretch,
-                                              children: [
-                                                  IconButton(
-                                                    icon: Icon(Icons.refresh,
-                                                        size: 32.0,
-                                                        color: Colors.white70),
-                                                    onPressed: () {
-                                                      setState(() {
-                                                        companyBloc.refresh();
-                                                      });
-                                                    },
-                                                  ),
-                                                  Container(
-                                                    padding:
-                                                        EdgeInsets.all(8.0),
-                                                    child: (snapshot.hasError)
-                                                        ? Text(
-                                                            "Erro de recuperação de dados",
-                                                            textAlign: TextAlign
-                                                                .center,
-                                                          )
-                                                        : const Center(
-                                                            child: Text(
-                                                                "Problemas de cinexão")),
-                                                  )
-                                                ])),
-                                      crossFadeState:
-                                          (snapshot.connectionState !=
-                                                  ConnectionState.done)
-                                              ? CrossFadeState.showFirst
-                                              : CrossFadeState.showSecond,
-                                      duration: Duration(milliseconds: 800));
-                                })
-                          ],
-                        ),
-                      ),
-                    ),
-                    _titleSliverBoxSection("Estatísticas principais",
-                        "Informações importantes sobre ${widget.quote.symbol}"),
-                    SliverToBoxAdapter(
-                      child: Container(
-                        margin: EdgeInsets.all(8.0),
-                        alignment: Alignment.center,
-                        child: StreamBuilder(
-                          stream: statsBloc.keyStream,
-                          builder: (context, snapshot) {
-                            return AnimatedCrossFade(
-                                firstCurve: Curves.fastOutSlowIn,
-                                secondCurve: Curves.fastOutSlowIn,
-                                sizeCurve: Curves.easeIn,
-                                firstChild: (snapshot.connectionState ==
-                                        ConnectionState.none)
-                                    ? const Center(
-                                        child: const Icon(
-                                        Icons.cloud_off,
-                                        color: Colors.white,
-                                        size: 32.0,
-                                      ))
-                                    : const Center(
-                                        child:
-                                            const CircularProgressIndicator()),
-                                secondChild: (!snapshot.hasData
-                                    ? Center(
-                                        child: IconButton(
-                                        icon: Icon(Icons.refresh,
-                                            size: 32.0, color: Colors.white70),
-                                        onPressed: () {
-                                          setState(() {
-                                            statsBloc.refresh();
-                                          });
-                                        },
-                                      ))
-                                    : Wrap(
-                                        alignment: WrapAlignment.center,
-                                        spacing: 8.0,
-                                        runSpacing: 8.0,
-                                        runAlignment: WrapAlignment.center,
-                                        children: <Widget>[
-                                          Container(
-                                            width: 100,
-                                            alignment: Alignment.center,
-                                            child: Column(
-                                              children: <Widget>[
-                                                Text(
-                                                  "Wk52 ALTA",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  numToSimple(
-                                                      snapshot.data.week52High),
-                                                  maxLines: 9,
-                                                  textAlign: TextAlign.justify,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                                Padding(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            vertical: 4.0)),
-                                                Text(
-                                                  "Wk52 BAIXA",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  "\$${numToSimple(snapshot.data.week52low)}",
-                                                  maxLines: 9,
-                                                  textAlign: TextAlign.justify,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                                Padding(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            vertical: 4.0)),
-                                                Text(
-                                                  "Wk52 Mudança",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  numToSimple(snapshot
-                                                      .data.week52change),
-                                                  maxLines: 9,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Container(
-                                            width: 100,
-                                            alignment: Alignment.center,
-                                            child: Column(
-                                              children: <Widget>[
-                                                Text(
-                                                  "Float",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  "\$${numToSimple(snapshot.data.float)}",
-                                                  maxLines: 9,
-                                                  textAlign: TextAlign.justify,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                                Padding(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            vertical: 4.0)),
-                                                Text(
-                                                  "Beta",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  "${numToSimple(snapshot.data.beta)}",
-                                                  maxLines: 9,
-                                                  textAlign: TextAlign.justify,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                                Padding(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            vertical: 4.0)),
-                                                Text(
-                                                  "Cash",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  numToSimple(
-                                                      snapshot.data.cash),
-                                                  maxLines: 9,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Container(
-                                            width: 100,
-                                            alignment: Alignment.center,
-                                            child: Column(
-                                              children: <Widget>[
-                                                Text(
-                                                  "P/E ALTA",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  numToSimple(snapshot
-                                                      .data.peRatioHigh),
-                                                  maxLines: 9,
-                                                  textAlign: TextAlign.justify,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                                Padding(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            vertical: 4.0)),
-                                                Text(
-                                                  "P/E BAIXA",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  "${numToSimple(snapshot.data.peRatioLow)}",
-                                                  maxLines: 9,
-                                                  textAlign: TextAlign.justify,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                                Padding(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            vertical: 4.0)),
-                                                Text(
-                                                  "Receita(TTM)",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  numToSimple(
-                                                      snapshot.data.revenueTTM),
-                                                  maxLines: 9,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Container(
-                                            width: 100,
-                                            alignment: Alignment.center,
-                                            child: Column(
-                                              children: <Widget>[
-                                                Text(
-                                                  "R.O.Assets",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  "${numToSimple(snapshot.data.returnOnAssetsTTM)}%",
-                                                  maxLines: 9,
-                                                  textAlign: TextAlign.justify,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                                Padding(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            vertical: 4.0)),
-                                                Text(
-                                                  "R.O.Equity",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  "${numToSimple(snapshot.data.returnOnEquityTTM)}%",
-                                                  maxLines: 9,
-                                                  textAlign: TextAlign.justify,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                                Padding(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            vertical: 4.0)),
-                                                Text(
-                                                  "R.0.Capital",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  "${numToSimple(snapshot.data.returnOnCapitalTTM)}%",
-                                                  maxLines: 9,
-                                                  //textAlign: TextAlign.justify,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Container(
-                                            width: 100,
-                                            alignment: Alignment.center,
+//                                                                     _launchURL(
+//                                                                         context,
+//                                                                         uri);
+//                                                                   }),
+//                                                         maxLines: 9,
+//                                                         textAlign:
+//                                                             TextAlign.justify,
+//                                                         overflow: TextOverflow
+//                                                             .ellipsis,
+//                                                       )),
+//                                                       Padding(
+//                                                           padding: EdgeInsets
+//                                                               .symmetric(
+//                                                                   vertical:
+//                                                                       4.0)),
+//                                                       Text(
+//                                                         "Website",
+//                                                         style: TextStyle(
+//                                                             color: Colors.white,
+//                                                             fontWeight:
+//                                                                 FontWeight
+//                                                                     .bold),
+//                                                       ),
+//                                                       Divider(
+//                                                         color: Colors.white,
+//                                                       ),
+//                                                       RichText(
+//                                                         text: TextSpan(
+//                                                             text: (snapshot.data
+//                                                                     as CompanyModel)
+//                                                                 .website,
+//                                                             recognizer:
+//                                                                 TapGestureRecognizer()
+//                                                                   ..onTap = () {
+//                                                                     _launchURL(
+//                                                                         context,
+//                                                                         (snapshot.data
+//                                                                                 as CompanyModel)
+//                                                                             .website);
+//                                                                   },
+//                                                             style: TextStyle(
+//                                                                 color: Colors
+//                                                                     .white,
+//                                                                 fontFamily:
+//                                                                     "Montserrat",
+//                                                                 fontSize: 12.0,
+//                                                                 decoration:
+//                                                                     TextDecoration
+//                                                                         .underline)),
+//                                                         maxLines: 9,
+//                                                         textAlign:
+//                                                             TextAlign.justify,
+//                                                         overflow: TextOverflow
+//                                                             .ellipsis,
+//                                                       ),
+//                                                     ],
+//                                                   ),
+//                                                 ),
+//                                                 Container(
+//                                                   alignment:
+//                                                       Alignment.centerLeft,
+//                                                   width: 110.0,
+//                                                   child: Column(
+//                                                     children: <Widget>[
+//                                                       Padding(
+//                                                           padding: EdgeInsets
+//                                                               .symmetric(
+//                                                                   vertical:
+//                                                                       4.0)),
+//                                                       Text(
+//                                                         "Sector",
+//                                                         style: TextStyle(
+//                                                             color: Colors.white,
+//                                                             fontWeight:
+//                                                                 FontWeight
+//                                                                     .bold),
+//                                                       ),
+//                                                       Divider(
+//                                                         color: Colors.white,
+//                                                       ),
+//                                                       Text(
+//                                                         snapshot.data.sector,
+//                                                         maxLines: 9,
+//                                                         textAlign:
+//                                                             TextAlign.justify,
+//                                                         overflow: TextOverflow
+//                                                             .ellipsis,
+//                                                         style: TextStyle(
+//                                                             color:
+//                                                                 Colors.white),
+//                                                       ),
+//                                                     ],
+//                                                   ),
+//                                                 ),
+//                                               ],
+//                                             )
+//                                           : Column(
+//                                               mainAxisSize: MainAxisSize.max,
+//                                               mainAxisAlignment:
+//                                                   MainAxisAlignment.center,
+//                                               crossAxisAlignment:
+//                                                   CrossAxisAlignment.stretch,
+//                                               children: [
+//                                                   IconButton(
+//                                                     icon: Icon(Icons.refresh,
+//                                                         size: 32.0,
+//                                                         color: Colors.white70),
+//                                                     onPressed: () {
+//                                                       setState(() {
+//                                                         companyBloc.refresh();
+//                                                       });
+//                                                     },
+//                                                   ),
+//                                                   Container(
+//                                                     padding:
+//                                                         EdgeInsets.all(8.0),
+//                                                     child: (snapshot.hasError)
+//                                                         ? Text(
+//                                                             "Erro de recuperação de dados",
+//                                                             textAlign: TextAlign
+//                                                                 .center,
+//                                                           )
+//                                                         : const Center(
+//                                                             child: Text(
+//                                                                 "Problemas de cinexão")),
+//                                                   )
+//                                                 ])),
+//                                       crossFadeState:
+//                                           (snapshot.connectionState !=
+//                                                   ConnectionState.done)
+//                                               ? CrossFadeState.showFirst
+//                                               : CrossFadeState.showSecond,
+//                                       duration: Duration(milliseconds: 800));
+//                                 })
+//                           ],
+//                         ),
+//                       ),
+//                     ),
+//                     _titleSliverBoxSection("Estatísticas principais",
+//                         "Informações importantes sobre ${widget.quote.symbol}"),
+//                     SliverToBoxAdapter(
+//                       child: Container(
+//                         margin: EdgeInsets.all(8.0),
+//                         alignment: Alignment.center,
+//                         child: StreamBuilder(
+//                           stream: statsBloc.keyStream,
+//                           builder: (context, snapshot) {
+//                             return AnimatedCrossFade(
+//                                 firstCurve: Curves.fastOutSlowIn,
+//                                 secondCurve: Curves.fastOutSlowIn,
+//                                 sizeCurve: Curves.easeIn,
+//                                 firstChild: (snapshot.connectionState ==
+//                                         ConnectionState.none)
+//                                     ? const Center(
+//                                         child: const Icon(
+//                                         Icons.cloud_off,
+//                                         color: Colors.white,
+//                                         size: 32.0,
+//                                       ))
+//                                     : const Center(
+//                                         child:
+//                                             const CircularProgressIndicator()),
+//                                 secondChild: (!snapshot.hasData
+//                                     ? Center(
+//                                         child: IconButton(
+//                                         icon: Icon(Icons.refresh,
+//                                             size: 32.0, color: Colors.white70),
+//                                         onPressed: () {
+//                                           setState(() {
+//                                             statsBloc.refresh();
+//                                           });
+//                                         },
+//                                       ))
+//                                     : Wrap(
+//                                         alignment: WrapAlignment.center,
+//                                         spacing: 8.0,
+//                                         runSpacing: 8.0,
+//                                         runAlignment: WrapAlignment.center,
+//                                         children: <Widget>[
+//                                           Container(
+//                                             width: 100,
+//                                             alignment: Alignment.center,
+//                                             child: Column(
+//                                               children: <Widget>[
+//                                                 Text(
+//                                                   "Wk52 ALTA",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   numToSimple(
+//                                                       snapshot.data.week52High),
+//                                                   maxLines: 9,
+//                                                   textAlign: TextAlign.justify,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                                 Padding(
+//                                                     padding:
+//                                                         EdgeInsets.symmetric(
+//                                                             vertical: 4.0)),
+//                                                 Text(
+//                                                   "Wk52 BAIXA",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   "\$${numToSimple(snapshot.data.week52low)}",
+//                                                   maxLines: 9,
+//                                                   textAlign: TextAlign.justify,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                                 Padding(
+//                                                     padding:
+//                                                         EdgeInsets.symmetric(
+//                                                             vertical: 4.0)),
+//                                                 Text(
+//                                                   "Wk52 Mudança",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   numToSimple(snapshot
+//                                                       .data.week52change),
+//                                                   maxLines: 9,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                               ],
+//                                             ),
+//                                           ),
+//                                           Container(
+//                                             width: 100,
+//                                             alignment: Alignment.center,
+//                                             child: Column(
+//                                               children: <Widget>[
+//                                                 Text(
+//                                                   "Float",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   "\$${numToSimple(snapshot.data.float)}",
+//                                                   maxLines: 9,
+//                                                   textAlign: TextAlign.justify,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                                 Padding(
+//                                                     padding:
+//                                                         EdgeInsets.symmetric(
+//                                                             vertical: 4.0)),
+//                                                 Text(
+//                                                   "Beta",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   "${numToSimple(snapshot.data.beta)}",
+//                                                   maxLines: 9,
+//                                                   textAlign: TextAlign.justify,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                                 Padding(
+//                                                     padding:
+//                                                         EdgeInsets.symmetric(
+//                                                             vertical: 4.0)),
+//                                                 Text(
+//                                                   "Cash",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   numToSimple(
+//                                                       snapshot.data.cash),
+//                                                   maxLines: 9,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                               ],
+//                                             ),
+//                                           ),
+//                                           Container(
+//                                             width: 100,
+//                                             alignment: Alignment.center,
+//                                             child: Column(
+//                                               children: <Widget>[
+//                                                 Text(
+//                                                   "P/E ALTA",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   numToSimple(snapshot
+//                                                       .data.peRatioHigh),
+//                                                   maxLines: 9,
+//                                                   textAlign: TextAlign.justify,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                                 Padding(
+//                                                     padding:
+//                                                         EdgeInsets.symmetric(
+//                                                             vertical: 4.0)),
+//                                                 Text(
+//                                                   "P/E BAIXA",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   "${numToSimple(snapshot.data.peRatioLow)}",
+//                                                   maxLines: 9,
+//                                                   textAlign: TextAlign.justify,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                                 Padding(
+//                                                     padding:
+//                                                         EdgeInsets.symmetric(
+//                                                             vertical: 4.0)),
+//                                                 Text(
+//                                                   "Receita(TTM)",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   numToSimple(
+//                                                       snapshot.data.revenueTTM),
+//                                                   maxLines: 9,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                               ],
+//                                             ),
+//                                           ),
+//                                           Container(
+//                                             width: 100,
+//                                             alignment: Alignment.center,
+//                                             child: Column(
+//                                               children: <Widget>[
+//                                                 Text(
+//                                                   "R.O.Assets",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   "${numToSimple(snapshot.data.returnOnAssetsTTM)}%",
+//                                                   maxLines: 9,
+//                                                   textAlign: TextAlign.justify,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                                 Padding(
+//                                                     padding:
+//                                                         EdgeInsets.symmetric(
+//                                                             vertical: 4.0)),
+//                                                 Text(
+//                                                   "R.O.Equity",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   "${numToSimple(snapshot.data.returnOnEquityTTM)}%",
+//                                                   maxLines: 9,
+//                                                   textAlign: TextAlign.justify,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                                 Padding(
+//                                                     padding:
+//                                                         EdgeInsets.symmetric(
+//                                                             vertical: 4.0)),
+//                                                 Text(
+//                                                   "R.0.Capital",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   "${numToSimple(snapshot.data.returnOnCapitalTTM)}%",
+//                                                   maxLines: 9,
+//                                                   //textAlign: TextAlign.justify,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                               ],
+//                                             ),
+//                                           ),
+//                                           Container(
+//                                             width: 100,
+//                                             alignment: Alignment.center,
 
-                                            //padding: EdgeInsets.symmetric(horizontal: 8.0),
-                                            child: Column(
-                                              children: <Widget>[
-                                                Text(
-                                                  "Margem de Lucro",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  "${numToSimple(snapshot.data.profitMargin)}%",
-                                                  maxLines: 9,
-                                                  textAlign: TextAlign.justify,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                                Padding(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            vertical: 4.0)),
-                                                Text(
-                                                  "Preço de Venda",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  "${numToSimple(snapshot.data.priceToSales)}",
-                                                  maxLines: 9,
-                                                  textAlign: TextAlign.justify,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                                Padding(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            vertical: 4.0)),
-                                                Text(
-                                                  "Preço para compra",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Divider(
-                                                  color: Colors.white,
-                                                ),
-                                                Text(
-                                                  "${numToSimple(snapshot.data.priceToMargin)}",
-                                                  maxLines: 9,
-                                                  //textAlign: TextAlign.justify,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      )),
-                                crossFadeState: (snapshot.connectionState !=
-                                        ConnectionState.done)
-                                    ? CrossFadeState.showFirst
-                                    : CrossFadeState.showSecond,
-                                duration: Duration(milliseconds: 900));
-                          },
-                        ),
-                      ),
-                    ),
-                    SliverPadding(padding: EdgeInsets.symmetric(vertical: 8.0)),
-                    _titleSliverBoxSection(
-                        "Pares", "Títulos semelhantes a este"),
-                    SliverToBoxAdapter(
-                      child: Container(
-                          padding: EdgeInsets.only(bottom: 16.0),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8.0),
-                            color: Colors.transparent,
-                          ),
-                          height: kOverlayBoxHeight + 4.0,
-                          child: StreamBuilder(
-                              stream: peersBloc.peerStream,
-                              builder: (context, snapshot) {
-                                return AnimatedCrossFade(
-                                    firstCurve: Curves.fastOutSlowIn,
-                                    secondCurve: Curves.fastOutSlowIn,
-                                    sizeCurve: Curves.easeIn,
-                                    // alignment: Alignment.bottomCenter,
-                                    firstChild: (snapshot.connectionState ==
-                                            ConnectionState.none)
-                                        ? Center(
-                                            child: IconButton(
-                                            icon: Icon(Icons.refresh,
-                                                size: 32.0,
-                                                color: Colors.white70),
-                                            onPressed: () {
-                                              setState(() {
-                                                peersBloc.refresh();
-                                              });
-                                            },
-                                          ))
-                                        : const Center(
-                                            child:
-                                                const CircularProgressIndicator()),
-                                    secondChild: (!snapshot.hasData
-                                        ? Center(
-                                            child: IconButton(
-                                            icon: Icon(Icons.refresh,
-                                                size: 32.0,
-                                                color: Colors.white70),
-                                            onPressed: () {
-                                              setState(() {
-                                                peersBloc.refresh();
-                                              });
-                                            },
-                                          ))
-                                        : (snapshot.data.length > 0
-                                            ? ListView.builder(
-                                                itemCount: snapshot.data.length,
-                                                itemBuilder:
-                                                    (BuildContext c, int i) {
-                                                  Quote index = (snapshot
-                                                      .data[i] as Quote);
-                                                  return GradientColorCard(
-                                                      kColora: snapshot
-                                                          .data[i].kColora,
-                                                      kColorb: snapshot
-                                                          .data[i].kColorb,
-                                                      child: QuoteWidget(
-                                                        index: index,
-                                                        allowPushRoute: true,
-                                                        isCrypto: index
-                                                                .sector ==
-                                                            "cryptocurrency",
-                                                        ifIsCrypto: _scaffoldKey
-                                                            .currentState,
-                                                      ));
-                                                },
-                                                physics:
-                                                    const BouncingScrollPhysics(),
-                                                padding: const EdgeInsets.only(
-                                                    left: 40.0),
-                                                scrollDirection:
-                                                    Axis.horizontal,
-                                              )
-                                            : Center(
-                                                child: Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  mainAxisSize:
-                                                      MainAxisSize.max,
-                                                  children: <Widget>[
-                                                    Icon(
-                                                      Icons.hourglass_empty,
-                                                      size: 32.0,
-                                                      color: Colors.white,
-                                                    ),
-                                                    Container(
-                                                      margin:
-                                                          EdgeInsets.all(4.0),
-                                                      child: Text(
-                                                        "Informação não adicionada!",
-                                                        style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontStyle:
-                                                              FontStyle.italic,
-                                                        ),
-                                                      ),
-                                                    )
-                                                  ],
-                                                ),
-                                              ))),
-                                    crossFadeState: (snapshot.connectionState !=
-                                            ConnectionState.done)
-                                        ? CrossFadeState.showFirst
-                                        : CrossFadeState.showSecond,
-                                    duration: Duration(milliseconds: 900));
-                              })),
-                      //);
-                    ),
-                  ],
-                ))),
-      ),
-    );
-  }
+//                                             //padding: EdgeInsets.symmetric(horizontal: 8.0),
+//                                             child: Column(
+//                                               children: <Widget>[
+//                                                 Text(
+//                                                   "Margem de Lucro",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   "${numToSimple(snapshot.data.profitMargin)}%",
+//                                                   maxLines: 9,
+//                                                   textAlign: TextAlign.justify,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                                 Padding(
+//                                                     padding:
+//                                                         EdgeInsets.symmetric(
+//                                                             vertical: 4.0)),
+//                                                 Text(
+//                                                   "Preço de Venda",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   "${numToSimple(snapshot.data.priceToSales)}",
+//                                                   maxLines: 9,
+//                                                   textAlign: TextAlign.justify,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                                 Padding(
+//                                                     padding:
+//                                                         EdgeInsets.symmetric(
+//                                                             vertical: 4.0)),
+//                                                 Text(
+//                                                   "Preço para compra",
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   maxLines: 1,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white,
+//                                                       fontWeight:
+//                                                           FontWeight.bold),
+//                                                 ),
+//                                                 Divider(
+//                                                   color: Colors.white,
+//                                                 ),
+//                                                 Text(
+//                                                   "${numToSimple(snapshot.data.priceToMargin)}",
+//                                                   maxLines: 9,
+//                                                   //textAlign: TextAlign.justify,
+//                                                   overflow:
+//                                                       TextOverflow.ellipsis,
+//                                                   style: TextStyle(
+//                                                       color: Colors.white),
+//                                                 ),
+//                                               ],
+//                                             ),
+//                                           ),
+//                                         ],
+//                                       )),
+//                                 crossFadeState: (snapshot.connectionState !=
+//                                         ConnectionState.done)
+//                                     ? CrossFadeState.showFirst
+//                                     : CrossFadeState.showSecond,
+//                                 duration: Duration(milliseconds: 900));
+//                           },
+//                         ),
+//                       ),
+//                     ),
+//                     SliverPadding(padding: EdgeInsets.symmetric(vertical: 8.0)),
+//                     _titleSliverBoxSection(
+//                         "Pares", "Títulos semelhantes a este"),
+//                     SliverToBoxAdapter(
+//                       child: Container(
+//                           padding: EdgeInsets.only(bottom: 16.0),
+//                           decoration: BoxDecoration(
+//                             borderRadius: BorderRadius.circular(8.0),
+//                             color: Colors.transparent,
+//                           ),
+//                           height: kOverlayBoxHeight + 4.0,
+//                           child: StreamBuilder(
+//                               stream: peersBloc.peerStream,
+//                               builder: (context, snapshot) {
+//                                 return AnimatedCrossFade(
+//                                     firstCurve: Curves.fastOutSlowIn,
+//                                     secondCurve: Curves.fastOutSlowIn,
+//                                     sizeCurve: Curves.easeIn,
+//                                     // alignment: Alignment.bottomCenter,
+//                                     firstChild: (snapshot.connectionState ==
+//                                             ConnectionState.none)
+//                                         ? Center(
+//                                             child: IconButton(
+//                                             icon: Icon(Icons.refresh,
+//                                                 size: 32.0,
+//                                                 color: Colors.white70),
+//                                             onPressed: () {
+//                                               setState(() {
+//                                                 peersBloc.refresh();
+//                                               });
+//                                             },
+//                                           ))
+//                                         : const Center(
+//                                             child:
+//                                                 const CircularProgressIndicator()),
+//                                     secondChild: (!snapshot.hasData
+//                                         ? Center(
+//                                             child: IconButton(
+//                                             icon: Icon(Icons.refresh,
+//                                                 size: 32.0,
+//                                                 color: Colors.white70),
+//                                             onPressed: () {
+//                                               setState(() {
+//                                                 peersBloc.refresh();
+//                                               });
+//                                             },
+//                                           ))
+//                                         : (snapshot.data.length > 0
+//                                             ? ListView.builder(
+//                                                 itemCount: snapshot.data.length,
+//                                                 itemBuilder:
+//                                                     (BuildContext c, int i) {
+//                                                   Ativo index = (snapshot
+//                                                       .data[i] as Ativo);
+//                                                   return GradientColorCard(
+//                                                       kColora: snapshot
+//                                                           .data[i].kColora,
+//                                                       kColorb: snapshot
+//                                                           .data[i].kColorb,
+//                                                       child: QuoteWidget(
+//                                                         index: index,
+//                                                         allowPushRoute: true,
+//                                                         isCrypto: index
+//                                                                 .sector ==
+//                                                             "cryptocurrency",
+//                                                         ifIsCrypto: _scaffoldKey
+//                                                             .currentState,
+//                                                       ));
+//                                                 },
+//                                                 physics:
+//                                                     const BouncingScrollPhysics(),
+//                                                 padding: const EdgeInsets.only(
+//                                                     left: 40.0),
+//                                                 scrollDirection:
+//                                                     Axis.horizontal,
+//                                               )
+//                                             : Center(
+//                                                 child: Column(
+//                                                   mainAxisAlignment:
+//                                                       MainAxisAlignment.center,
+//                                                   mainAxisSize:
+//                                                       MainAxisSize.max,
+//                                                   children: <Widget>[
+//                                                     Icon(
+//                                                       Icons.hourglass_empty,
+//                                                       size: 32.0,
+//                                                       color: Colors.white,
+//                                                     ),
+//                                                     Container(
+//                                                       margin:
+//                                                           EdgeInsets.all(4.0),
+//                                                       child: Text(
+//                                                         "Informação não adicionada!",
+//                                                         style: TextStyle(
+//                                                           color: Colors.white,
+//                                                           fontStyle:
+//                                                               FontStyle.italic,
+//                                                         ),
+//                                                       ),
+//                                                     )
+//                                                   ],
+//                                                 ),
+//                                               ))),
+//                                     crossFadeState: (snapshot.connectionState !=
+//                                             ConnectionState.done)
+//                                         ? CrossFadeState.showFirst
+//                                         : CrossFadeState.showSecond,
+//                                     duration: Duration(milliseconds: 900));
+//                               })),
+//                       //);
+//                     ),
+//                   ],
+//                 ))),
+//       ),
+//     );
+//   }
 
-  Widget createDataTables(AsyncSnapshot snapshot) {
-    List<FinancialsModel> _finList = (snapshot.data as List<FinancialsModel>);
-    if (_finList.length != 4) {
-      setState(() {
-        isMissing = true;
-      });
-      return Center(
-          child: Text(
-        "dodos Insuficientes!",
-        style: TextStyle(color: Colors.white),
-      ));
-    }
-    if (isMissing) {
-      setState(() {
-        isMissing = false;
-      });
-    }
-    return DataTable(columns: <DataColumn>[
-      DataColumn(
-        label: Text("Valor"),
-        numeric: false,
-      ),
-      DataColumn(
-        label: Text(
-            "${_finList.first.reportDate.year}-${_finList.first.reportDate.month}-${_finList.first.reportDate.day}"),
-        numeric: false,
-      ),
-      DataColumn(
-        label: Text(
-            "${_finList[1].reportDate.year}-${_finList[1].reportDate.month}-${_finList[1].reportDate.day}"),
-        numeric: false,
-      ),
-      DataColumn(
-        label: Text(
-            "${_finList[2].reportDate.year}-${_finList[2].reportDate.month}-${_finList[2].reportDate.day}"),
-        numeric: false,
-      ),
-      DataColumn(
-        label: Text(
-            "${_finList[3].reportDate.year}-${_finList[3].reportDate.month}-${_finList[3].reportDate.day}"),
-        numeric: false,
-      ),
-    ], rows: <DataRow>[
-      DataRow(
-        cells: cellRepresentation("Pesquisa e Desenvolvimento",
-            (i) => _finList[i].researchAndDevelopment),
-      ),
-      DataRow(
-        cells: cellRepresentation(
-            "Despesa operacional", (i) => _finList[i].operatingExpense),
-      ),
-      DataRow(
-        cells: cellRepresentation(
-            "Renda Operacional", (i) => _finList[i].operatingIncome),
-      ),
-      DataRow(
-        cells: cellRepresentation(
-            "Resultado líquido", (i) => _finList[i].netIncome),
-      ),
-      DataRow(
-        cells: cellRepresentation(
-            "Rendimento total", (i) => _finList[i].totalRevenue),
-      ),
-      DataRow(
-        cells: cellRepresentation(
-            "Custo de receita", (i) => _finList[i].costOfRevenue),
-      ),
-      DataRow(
-        cells:
-            cellRepresentation("Lucro bruto", (i) => _finList[i].grossProfit),
-      ),
-      DataRow(
-        cells: cellRepresentation(
-            "Current Assets", (i) => _finList[i].currentAssets),
-      ),
-      DataRow(
-        cells:
-            cellRepresentation("Dívida Atual", (i) => _finList[i].currentDebt),
-      ),
-      DataRow(
-        cells: cellRepresentation("Divida Total", (i) => _finList[i].totalDebt),
-      ),
-      DataRow(
-        cells: cellRepresentation(
-            "Responsabilidades Totais", (i) => _finList[i].totalLiabilities),
-      ),
-      DataRow(
-        cells: cellRepresentation(
-            "Dinheiro Atual", (i) => _finList[i].currentCash),
-      ),
-      DataRow(
-        cells:
-            cellRepresentation("Dinheiro Total", (i) => _finList[i].totalCash),
-      ),
-      DataRow(
-        cells: cellRepresentation(
-            "Patrimônio Liquido", (i) => _finList[i].shareHolderEquity),
-      ),
-      DataRow(
-        cells: cellRepresentation(
-            "Troca de dinheiro", (i) => _finList[i].cashChange),
-      ),
-      DataRow(
-        cells:
-            cellRepresentation("Fluxo de caixa", (i) => _finList[i].cashFlow),
-      ),
-    ]);
-  }
+//   Widget createDataTables(AsyncSnapshot snapshot) {
+//     List<FinancialsModel> _finList = (snapshot.data as List<FinancialsModel>);
+//     if (_finList.length != 4) {
+//       setState(() {
+//         isMissing = true;
+//       });
+//       return Center(
+//           child: Text(
+//         "dodos Insuficientes!",
+//         style: TextStyle(color: Colors.white),
+//       ));
+//     }
+//     if (isMissing) {
+//       setState(() {
+//         isMissing = false;
+//       });
+//     }
+//     return DataTable(columns: <DataColumn>[
+//       DataColumn(
+//         label: Text("Valor"),
+//         numeric: false,
+//       ),
+//       DataColumn(
+//         label: Text(
+//             "${_finList.first.reportDate.year}-${_finList.first.reportDate.month}-${_finList.first.reportDate.day}"),
+//         numeric: false,
+//       ),
+//       DataColumn(
+//         label: Text(
+//             "${_finList[1].reportDate.year}-${_finList[1].reportDate.month}-${_finList[1].reportDate.day}"),
+//         numeric: false,
+//       ),
+//       DataColumn(
+//         label: Text(
+//             "${_finList[2].reportDate.year}-${_finList[2].reportDate.month}-${_finList[2].reportDate.day}"),
+//         numeric: false,
+//       ),
+//       DataColumn(
+//         label: Text(
+//             "${_finList[3].reportDate.year}-${_finList[3].reportDate.month}-${_finList[3].reportDate.day}"),
+//         numeric: false,
+//       ),
+//     ], rows: <DataRow>[
+//       DataRow(
+//         cells: cellRepresentation("Pesquisa e Desenvolvimento",
+//             (i) => _finList[i].researchAndDevelopment),
+//       ),
+//       DataRow(
+//         cells: cellRepresentation(
+//             "Despesa operacional", (i) => _finList[i].operatingExpense),
+//       ),
+//       DataRow(
+//         cells: cellRepresentation(
+//             "Renda Operacional", (i) => _finList[i].operatingIncome),
+//       ),
+//       DataRow(
+//         cells: cellRepresentation(
+//             "Resultado líquido", (i) => _finList[i].netIncome),
+//       ),
+//       DataRow(
+//         cells: cellRepresentation(
+//             "Rendimento total", (i) => _finList[i].totalRevenue),
+//       ),
+//       DataRow(
+//         cells: cellRepresentation(
+//             "Custo de receita", (i) => _finList[i].costOfRevenue),
+//       ),
+//       DataRow(
+//         cells:
+//             cellRepresentation("Lucro bruto", (i) => _finList[i].grossProfit),
+//       ),
+//       DataRow(
+//         cells: cellRepresentation(
+//             "Current Assets", (i) => _finList[i].currentAssets),
+//       ),
+//       DataRow(
+//         cells:
+//             cellRepresentation("Dívida Atual", (i) => _finList[i].currentDebt),
+//       ),
+//       DataRow(
+//         cells: cellRepresentation("Divida Total", (i) => _finList[i].totalDebt),
+//       ),
+//       DataRow(
+//         cells: cellRepresentation(
+//             "Responsabilidades Totais", (i) => _finList[i].totalLiabilities),
+//       ),
+//       DataRow(
+//         cells: cellRepresentation(
+//             "Dinheiro Atual", (i) => _finList[i].currentCash),
+//       ),
+//       DataRow(
+//         cells:
+//             cellRepresentation("Dinheiro Total", (i) => _finList[i].totalCash),
+//       ),
+//       DataRow(
+//         cells: cellRepresentation(
+//             "Patrimônio Liquido", (i) => _finList[i].shareHolderEquity),
+//       ),
+//       DataRow(
+//         cells: cellRepresentation(
+//             "Troca de dinheiro", (i) => _finList[i].cashChange),
+//       ),
+//       DataRow(
+//         cells:
+//             cellRepresentation("Fluxo de caixa", (i) => _finList[i].cashFlow),
+//       ),
+//     ]);
+//   }
 
-  List<DataCell> cellRepresentation(String title, Function applicator) {
-    return [
-      DataCell(Text(
-        title,
-        style: TextStyle(fontFamily: "Montserrat", fontWeight: FontWeight.bold),
-      )),
-      DataCell(Text(numToSimple(applicator(0)))),
-      DataCell(Text(numToSimple(applicator(1)))),
-      DataCell(Text(numToSimple(applicator(2)))),
-      DataCell(Text(numToSimple(applicator(3)))),
-    ];
-  }
+//   List<DataCell> cellRepresentation(String title, Function applicator) {
+//     return [
+//       DataCell(Text(
+//         title,
+//         style: TextStyle(fontFamily: "Montserrat", fontWeight: FontWeight.bold),
+//       )),
+//       DataCell(Text(numToSimple(applicator(0)))),
+//       DataCell(Text(numToSimple(applicator(1)))),
+//       DataCell(Text(numToSimple(applicator(2)))),
+//       DataCell(Text(numToSimple(applicator(3)))),
+//     ];
+//   }
 
-  String numToSimple(dynamic num) {
-    if (num == null) {
-      return "N/A";
-    }
-    if (num.abs() > 1000000000000) {
-      return "${((num / 1000000000) as double).toStringAsFixed(2)} T";
-    } else if (num.abs() > 1000000000) {
-      return "${((num / 1000000000) as double).toStringAsFixed(2)} B";
-    } else if (num.abs() > 1000000) {
-      return "${((num / 1000000) as double).toStringAsFixed(2)} M";
-    } else if (num.abs() > 1000) {
-      return "${((num / 1000) as double).toStringAsFixed(2)} K";
-    } else {
-      if (num is int) {
-        return num.toDouble().toStringAsFixed(2);
-      }
-      return (num as double)?.toStringAsFixed(2);
-    }
-  }
+//   String numToSimple(dynamic num) {
+//     if (num == null) {
+//       return "N/A";
+//     }
+//     if (num.abs() > 1000000000000) {
+//       return "${((num / 1000000000) as double).toStringAsFixed(2)} T";
+//     } else if (num.abs() > 1000000000) {
+//       return "${((num / 1000000000) as double).toStringAsFixed(2)} B";
+//     } else if (num.abs() > 1000000) {
+//       return "${((num / 1000000) as double).toStringAsFixed(2)} M";
+//     } else if (num.abs() > 1000) {
+//       return "${((num / 1000) as double).toStringAsFixed(2)} K";
+//     } else {
+//       if (num is int) {
+//         return num.toDouble().toStringAsFixed(2);
+//       }
+//       return (num as double)?.toStringAsFixed(2);
+//     }
+//   }
 
-  Widget _titleSliverBoxSection(
-    String title,
-    String description,
-  ) {
-    return SliverPadding(
-        padding: EdgeInsets.symmetric(vertical: 4.0),
-        sliver: SliverToBoxAdapter(
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 4.0),
-            height: 84.0,
-            alignment: Alignment.centerLeft,
-            margin: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  title,
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 28.0),
-                ),
-                const Divider(
-                  color: Colors.white70,
-                ),
-                Text(
-                  description,
-                  style: TextStyle(color: Colors.white, fontSize: 14.0),
-                ),
-              ],
-            ),
-          ),
-        ));
-  }
+//   Widget _titleSliverBoxSection(
+//     String title,
+//     String description,
+//   ) {
+//     return SliverPadding(
+//         padding: EdgeInsets.symmetric(vertical: 4.0),
+//         sliver: SliverToBoxAdapter(
+//           child: Container(
+//             padding: const EdgeInsets.symmetric(vertical: 4.0),
+//             height: 84.0,
+//             alignment: Alignment.centerLeft,
+//             margin: const EdgeInsets.symmetric(horizontal: 16.0),
+//             child: Column(
+//               crossAxisAlignment: CrossAxisAlignment.start,
+//               children: <Widget>[
+//                 Text(
+//                   title,
+//                   style: TextStyle(
+//                       color: Colors.white,
+//                       fontWeight: FontWeight.bold,
+//                       fontSize: 28.0),
+//                 ),
+//                 const Divider(
+//                   color: Colors.white70,
+//                 ),
+//                 Text(
+//                   description,
+//                   style: TextStyle(color: Colors.white, fontSize: 14.0),
+//                 ),
+//               ],
+//             ),
+//           ),
+//         ));
+//   }
 
-  Widget _titledColumn(String title, String info) {
-    return Column(
-      children: <Widget>[
-        Text(
-          title,
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        Divider(
-          color: Colors.white,
-        ),
-        Text(
-          info,
-          maxLines: 9,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: Colors.white),
-        ),
-      ],
-    );
-  }
-}
+//   Widget _titledColumn(String title, String info) {
+//     return Column(
+//       children: <Widget>[
+//         Text(
+//           title,
+//           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+//         ),
+//         Divider(
+//           color: Colors.white,
+//         ),
+//         Text(
+//           info,
+//           maxLines: 9,
+//           overflow: TextOverflow.ellipsis,
+//           style: TextStyle(color: Colors.white),
+//         ),
+//       ],
+//     );
+//   }
+// }
 
 class AttributionPage extends StatefulWidget {
   @override
@@ -3175,18 +3200,18 @@ class AttributionWidget extends StatelessWidget {
           style: TextStyle(fontFamily: 'Montserrat'),
           children: [
             TextSpan(
-                text: "YAHOO.",
+                text: "YAHOO finance.",
                 style: TextStyle(decoration: TextDecoration.underline),
                 recognizer: TapGestureRecognizer()
-                  ..onTap = () =>
-                      _launchURL(context, "https://iextrading.com/developer")),
+                  ..onTap =
+                      () => _launchURL(context, "https://finance.yahoo.com/")),
             TextSpan(text: " Ver", children: []),
             TextSpan(
-                text: " YAHOO’s Terms of Use",
+                text: " YAHOO’s Termos de Uso",
                 style: TextStyle(decoration: TextDecoration.underline),
                 recognizer: TapGestureRecognizer()
-                  ..onTap = () => _launchURL(
-                      context, "https://iextrading.com/api-exhibit-a/"))
+                  ..onTap = () => _launchURL(context,
+                      "https://policies.yahoo.com/us/en/yahoo/terms/product-atos/apiforydn/index.htm"))
           ]),
     );
   }

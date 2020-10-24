@@ -5,7 +5,16 @@ import 'package:trade_quotes/models/ativo.dart' as Ativo;
 
 const int kColorMin = 127;
 
-enum MarketListType { GAINERS, LOSERS, STOCKS, CRIPTO }
+enum MarketListType {
+  GAINERS,
+  LOSERS,
+  STOCKS,
+  CRIPTO,
+  FUTURE,
+  ETF,
+  INDEX,
+  MUTUAL_FUND
+}
 
 class MarketList {
   final MarketListType _marketListType;

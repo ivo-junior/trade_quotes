@@ -7,18 +7,20 @@ class Ativo implements Comparable<Ativo> {
   String symbol;
   String companyName;
   String primaryExchange;
-  dynamic change;
-  dynamic changePercent;
-  dynamic peRatio;
-  dynamic price;
-  dynamic delayedPrice;
-  dynamic avgTotalVolume;
-  dynamic open;
-  dynamic close;
+  String change;
+  String changePercent;
+  String peRatio;
+  String price;
+  String delayedPrice;
+  String avgTotalVolume;
+  String open;
+  String close;
   String latestTime;
-  dynamic high;
-  dynamic low;
+  String high;
+  String low;
   String currency;
+  String sector = 'cryptocurrency';
+  // String sector = 'qualquer';
 
   final Color kColora = Color.fromRGBO(
       kColorMin + Math.Random().nextInt(255 - kColorMin),
