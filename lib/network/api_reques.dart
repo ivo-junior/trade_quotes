@@ -18,6 +18,7 @@ class ApiReques {
 
   ApiReques() {
     print('Instantiating instance!!');
+    _repository = Repository();
   }
 
   static getInstance() {
@@ -29,7 +30,6 @@ class ApiReques {
 
   Future<List<MarketLists.MarketList>> fetchAList(
       MarketLists.MarketListType marketListType) async {
-    _repository = Repository();
     List<MarketLists.MarketList> list = [];
     switch (marketListType) {
       case MarketLists.MarketListType.GAINERS:
@@ -73,7 +73,7 @@ class ApiReques {
   }
 
   Future<List<MarketList>> lists(
-      List symbols, MarketLists.MarketListType marketListType) async {
+      Map symbols, MarketLists.MarketListType marketListType) async {
     var list1 = fetchAtivos(symbols);
     var list2 = list1;
 
@@ -118,12 +118,39 @@ class ApiReques {
       lsMarket.add(MarketList(marketListType, element));
     });
 
+    print(lsMarket.length);
+
     return lsMarket;
   }
 
   Future<List<Ativo>> fetchCollectionsFor(String sector) async {
     print("Fetching $sector!");
     List<Ativo> list = [];
+
+    List<MarketList> lsMarket;
+
+    switch (sector) {
+      case "STOCKS":
+        list = fetchAtivos(await _repository.findAllStocksReduc(100));
+        break;
+      case "CRIPTO":
+        list = fetchAtivos(await _repository.findAllCurrencyReduc(100));
+        break;
+      case "FUTURE":
+        list = fetchAtivos(await _repository.findAllFutureReduc(100));
+        break;
+      case "ETF":
+        list = fetchAtivos(await _repository.findAllEtfReduc(100));
+        break;
+      case "INDEX":
+        list = fetchAtivos(await _repository.findAllIndexReduc(100));
+        break;
+      case "MUTUAL_FUND":
+        list = fetchAtivos(await _repository.findAllMutualFundReduc(100));
+        break;
+    }
+
+    return list;
   }
 
   Future<Charts.ChartModel> fetchChartData(
@@ -152,11 +179,15 @@ class ApiReques {
     _sIexApiProxyInstance = null;
   }
 
-  List<Ativo> fetchAtivos(List symbols) {
-    _repository = Repository();
-    List<Ativo> list;
+  List<Ativo> fetchAtivos(Map symbols) {
+    List<Ativo> list = [];
+    List lsSymbols;
 
-    symbols.forEach((element) async {
+    symbols.forEach((key, value) {
+      lsSymbols.add(value);
+    });
+
+    lsSymbols.forEach((element) async {
       var fet = fetchSingleAtivo(element['symbol']);
       list.add(await fet);
     });

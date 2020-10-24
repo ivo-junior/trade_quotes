@@ -1,7 +1,8 @@
 class Urls {
-  static final IP = '192.168.42.80';
+  // static final IP = '192.168.42.80';
+  static final IP = '192.168.0.4';
 
-  static final URL = 'http://${IP}/api/';
+  static final URL = 'http://${IP}:8000/api/';
 
   static final FIND_ALL_STOCKS = '${URL}find_all_stocks/';
   static final FIND_ALL_CURRENCY = '${URL}find_all_currency/';

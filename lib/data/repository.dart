@@ -12,7 +12,7 @@ class Repository {
     this._dio = Dio();
   }
 
-  Future<List> findAll() async {
+  Future<Map> findAll() async {
     List list;
 
     list = await findAllCurrency();
@@ -33,7 +33,7 @@ class Repository {
           list.add(element);
         }));
 
-    return list;
+    return list.asMap();
   }
 
   Future<List> findAllCurrency() async {
@@ -41,7 +41,7 @@ class Repository {
 
     this._response = await this._dio.get(Urls.FIND_ALL_CURRENCY);
 
-    list = this._response.data;
+    list = this._response.data['currency'];
 
     return list;
   }
@@ -51,7 +51,7 @@ class Repository {
 
     this._response = await this._dio.get(Urls.FIND_ALL_STOCKS);
 
-    list = this._response.data;
+    list = this._response.data['stocks'];
 
     return list;
   }
@@ -61,7 +61,7 @@ class Repository {
 
     this._response = await this._dio.get(Urls.FIND_ALL_INDEX);
 
-    list = this._response.data;
+    list = this._response.data['index'];
 
     return list;
   }
@@ -71,7 +71,7 @@ class Repository {
 
     this._response = await this._dio.get(Urls.FIND_ALL_FUTURE);
 
-    list = this._response.data;
+    list = this._response.data['future'];
 
     return list;
   }
@@ -81,7 +81,7 @@ class Repository {
 
     this._response = await this._dio.get(Urls.FIND_ALL_MUTUAL_FUND);
 
-    list = this._response.data;
+    list = this._response.data['mutualFund'];
 
     return list;
   }
@@ -91,12 +91,12 @@ class Repository {
 
     this._response = await this._dio.get(Urls.FIND_ALL_ETF);
 
-    list = this._response.data;
+    list = this._response.data['etf'];
 
     return list;
   }
 
-  Future<List> findAllReduc(int tamList) async {
+  Future<Map> findAllReduc(int tamList) async {
     List list;
 
     int max = 20000;
@@ -124,10 +124,10 @@ class Repository {
           .then((value) => list.add(value));
     }
 
-    return list;
+    return list.asMap();
   }
 
-  Future<List> findAllCurrencyReduc(int tamList) async {
+  Future<Map> findAllCurrencyReduc(int tamList) async {
     List list;
 
     int max = 20000;
@@ -140,10 +140,10 @@ class Repository {
           .then((value) => list.add(value));
     }
 
-    return list;
+    return list.asMap();
   }
 
-  Future<List> findAllStocksReduc(int tamList) async {
+  Future<Map> findAllStocksReduc(int tamList) async {
     List list;
 
     int max = 20000;
@@ -156,10 +156,10 @@ class Repository {
           .then((value) => list.add(value));
     }
 
-    return list;
+    return list.asMap();
   }
 
-  Future<List> findAllIndexReduc(int tamList) async {
+  Future<Map> findAllIndexReduc(int tamList) async {
     List list;
 
     int max = 20000;
@@ -172,10 +172,10 @@ class Repository {
           .then((value) => list.add(value));
     }
 
-    return list;
+    return list.asMap();
   }
 
-  Future<List> findAllFutureReduc(int tamList) async {
+  Future<Map> findAllFutureReduc(int tamList) async {
     List list;
 
     int max = 20000;
@@ -188,10 +188,10 @@ class Repository {
           .then((value) => list.add(value));
     }
 
-    return list;
+    return list.asMap();
   }
 
-  Future<List> findAllMutualFundReduc(int tamList) async {
+  Future<Map> findAllMutualFundReduc(int tamList) async {
     List list;
 
     int max = 20000;
@@ -204,10 +204,10 @@ class Repository {
           .then((value) => list.add(value));
     }
 
-    return list;
+    return list.asMap();
   }
 
-  Future<List> findAllEtfReduc(int tamList) async {
+  Future<Map> findAllEtfReduc(int tamList) async {
     List list;
 
     int max = 20000;
@@ -220,6 +220,6 @@ class Repository {
           .then((value) => list.add(value));
     }
 
-    return list;
+    return list.asMap();
   }
 }

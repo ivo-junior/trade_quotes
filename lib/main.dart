@@ -14,6 +14,7 @@ import 'package:trade_quotes/models/ativo.dart';
 import 'package:trade_quotes/network/api_reques.dart';
 import 'package:trade_quotes/providers/api_provider.dart';
 
+import 'blocs/collections_bloc.dart';
 import 'blocs/lists_bloc.dart';
 import 'models/charts.dart';
 import 'models/lists.dart';
@@ -30,7 +31,7 @@ class ValuePeekApp extends StatelessWidget {
     return ApiProvider(
       child: MaterialApp(
           title: "Trade Quotes",
-          routes: {'/sector': (_) => SectorInformation('Energy', 0.0)},
+          routes: {'/sector': (_) => SectorInformation('STOCKS', 0.0)},
           theme: ThemeData(
               fontFamily: 'Montserrat',
               primaryColor: Color(0xFF529C82),
@@ -108,7 +109,11 @@ class ValuePeekHomeState extends State<ValuePeekHome>
 
   Future<List> _getRepository() async {
     _repository = Repository();
-    var list = await _repository.findAll();
+    var list = [];
+    var findAll = await _repository.findAll();
+    findAll.forEach((key, value) {
+      list.add(value);
+    });
     return list;
   }
 
@@ -134,7 +139,10 @@ class ValuePeekHomeState extends State<ValuePeekHome>
   List<dynamic> searchClues(String clue) {
     return searchData
         .where((d) => (d['symbol'].toString().contains(clue.toUpperCase()) ||
-            d['name'].toString().toLowerCase().contains(clue.toLowerCase())))
+            d['nomeAtivo']
+                .toString()
+                .toLowerCase()
+                .contains(clue.toLowerCase())))
         .take(10)
         .toList();
   }
