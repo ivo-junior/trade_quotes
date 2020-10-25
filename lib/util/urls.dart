@@ -1,6 +1,6 @@
 class Urls {
-  // static final IP = '192.168.42.80';
-  static final IP = '192.168.0.4';
+  static final IP = '192.168.42.80';
+  // static final IP = '192.168.0.4';
 
   static final URL = 'http://${IP}:8000/api/';
 

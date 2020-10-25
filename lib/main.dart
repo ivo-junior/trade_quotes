@@ -243,7 +243,6 @@ class ValuePeekHomeState extends State<ValuePeekHome>
                                         alignment: Alignment.center,
                                         child: GradientColorCard(
                                           child: QuoteWidget(
-                                            ////////////////////////////////////////////////////////
                                             allowPushRoute: true,
                                             index: snapshot.data,
                                             focusNode: _editFocusNode,

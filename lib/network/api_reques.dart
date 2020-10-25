@@ -33,41 +33,45 @@ class ApiReques {
     List<MarketLists.MarketList> list = [];
     switch (marketListType) {
       case MarketLists.MarketListType.GAINERS:
-        list = await lists(await _repository.findAllReduc(50), marketListType);
-
+        list = await lists(await _repository.findAllReduc(15), marketListType);
+        // await _repository.findAllStocksReduc(50), marketListType);
         break;
       case MarketLists.MarketListType.LOSERS:
-        list = await lists(await _repository.findAllReduc(50), marketListType);
+        list = await lists(await _repository.findAllReduc(15), marketListType);
+        // await _repository.findAllStocksReduc(50), marketListType);
         break;
       case MarketLists.MarketListType.STOCKS:
         list = await lists(
-            await _repository.findAllStocksReduc(50), marketListType);
+            await _repository.findAllCurrencyReduc(15), marketListType);
+        // await _repository.findAllStocksReduc(50), marketListType);
         break;
       case MarketLists.MarketListType.CRIPTO:
         list = await lists(
-            await _repository.findAllCurrencyReduc(50), marketListType);
+            await _repository.findAllCurrencyReduc(15), marketListType);
         break;
 
       case MarketLists.MarketListType.FUTURE:
         list = await lists(
-            await _repository.findAllFutureReduc(50), marketListType);
+            await _repository.findAllFutureReduc(15), marketListType);
         break;
 
       case MarketLists.MarketListType.INDEX:
         list = await lists(
-            await _repository.findAllIndexReduc(50), marketListType);
+            await _repository.findAllIndexReduc(15), marketListType);
         break;
 
       case MarketLists.MarketListType.MUTUAL_FUND:
         list = await lists(
-            await _repository.findAllMutualFundReduc(50), marketListType);
+            await _repository.findAllMutualFundReduc(15), marketListType);
         break;
 
       case MarketLists.MarketListType.ETF:
         list =
-            await lists(await _repository.findAllEtfReduc(50), marketListType);
+            await lists(await _repository.findAllEtfReduc(15), marketListType);
         break;
     }
+
+    print(list.length);
 
     return list;
   }
@@ -77,48 +81,51 @@ class ApiReques {
     var list1 = fetchAtivos(symbols);
     var list2 = list1;
 
-    List<Ativo> list;
+    List<Ativo> list = [];
 
-    List<MarketList> lsMarket;
+    List<MarketList> lsMarket = [];
 
-    switch (marketListType) {
-      case MarketLists.MarketListType.GAINERS:
-        list2.sort((a, b) => double.parse(b.changePercent)
-            .compareTo(double.parse(a.changePercent)));
-        list = list2;
+    if (list1 != null) {
+      switch (marketListType) {
+        case MarketLists.MarketListType.GAINERS:
+          list2.sort((a, b) => double.parse(b.changePercent)
+              .compareTo(double.parse(a.changePercent)));
+          list = list2;
 
-        break;
-      case MarketLists.MarketListType.LOSERS:
-        list2.sort((a, b) => double.parse(a.changePercent)
-            .compareTo(double.parse(b.changePercent)));
-        list = list2;
+          break;
+        case MarketLists.MarketListType.LOSERS:
+          list2.sort((a, b) => double.parse(a.changePercent)
+              .compareTo(double.parse(b.changePercent)));
+          list = list2;
 
-        break;
-      case MarketLists.MarketListType.STOCKS:
-        list = list1;
-        break;
-      case MarketLists.MarketListType.CRIPTO:
-        list = list1;
-        break;
-      case MarketLists.MarketListType.FUTURE:
-        list = list1;
-        break;
-      case MarketLists.MarketListType.ETF:
-        list = list1;
-        break;
-      case MarketLists.MarketListType.INDEX:
-        list = list1;
-        break;
-      case MarketLists.MarketListType.MUTUAL_FUND:
-        list = list1;
-        break;
+          break;
+        case MarketLists.MarketListType.STOCKS:
+          list = list1;
+          break;
+        case MarketLists.MarketListType.CRIPTO:
+          list = list1;
+          break;
+        case MarketLists.MarketListType.FUTURE:
+          list = list1;
+          break;
+        case MarketLists.MarketListType.ETF:
+          list = list1;
+          break;
+        case MarketLists.MarketListType.INDEX:
+          list = list1;
+          break;
+        case MarketLists.MarketListType.MUTUAL_FUND:
+          list = list1;
+          break;
+      }
+    } else {
+      lists(symbols, marketListType);
     }
-
     list.forEach((element) {
       lsMarket.add(MarketList(marketListType, element));
     });
 
-    print(lsMarket.length);
+    print('Tamanho da Lista ${lsMarket.length}');
 
     return lsMarket;
   }
@@ -131,22 +138,22 @@ class ApiReques {
 
     switch (sector) {
       case "STOCKS":
-        list = fetchAtivos(await _repository.findAllStocksReduc(100));
+        list = fetchAtivos(await _repository.findAllStocksReduc(10));
         break;
       case "CRIPTO":
-        list = fetchAtivos(await _repository.findAllCurrencyReduc(100));
+        list = fetchAtivos(await _repository.findAllCurrencyReduc(10));
         break;
       case "FUTURE":
-        list = fetchAtivos(await _repository.findAllFutureReduc(100));
+        list = fetchAtivos(await _repository.findAllFutureReduc(10));
         break;
       case "ETF":
-        list = fetchAtivos(await _repository.findAllEtfReduc(100));
+        list = fetchAtivos(await _repository.findAllEtfReduc(10));
         break;
       case "INDEX":
-        list = fetchAtivos(await _repository.findAllIndexReduc(100));
+        list = fetchAtivos(await _repository.findAllIndexReduc(10));
         break;
       case "MUTUAL_FUND":
-        list = fetchAtivos(await _repository.findAllMutualFundReduc(100));
+        list = fetchAtivos(await _repository.findAllMutualFundReduc(10));
         break;
     }
 
@@ -181,18 +188,26 @@ class ApiReques {
 
   List<Ativo> fetchAtivos(Map symbols) {
     List<Ativo> list = [];
-    List lsSymbols;
+    List lsSymbols = [];
 
     symbols.forEach((key, value) {
       lsSymbols.add(value);
     });
 
     lsSymbols.forEach((element) async {
-      var fet = fetchSingleAtivo(element['symbol']);
-      list.add(await fet);
+      var fet = await fetchSingleAtivo(element['symbol']);
+      if (fet != null) {
+        // print(fet.price);
+        list.add(fet);
+      } else {
+        print('object null');
+      }
     });
 
-    return list;
+    if (list.length >= 5) {
+      return list;
+    } else
+      return null;
   }
 
   Future<Ativo> fetchSingleAtivo(String symbol) async {

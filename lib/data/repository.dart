@@ -13,9 +13,7 @@ class Repository {
   }
 
   Future<Map> findAll() async {
-    List list;
-
-    list = await findAllCurrency();
+    List list = await findAllCurrency();
 
     await findAllIndex().then((value) => value.forEach((element) {
           list.add(element);
@@ -37,7 +35,7 @@ class Repository {
   }
 
   Future<List> findAllCurrency() async {
-    List list;
+    List list = [];
 
     this._response = await this._dio.get(Urls.FIND_ALL_CURRENCY);
 
@@ -47,7 +45,7 @@ class Repository {
   }
 
   Future<List> findAllStocks() async {
-    List list;
+    List list = [];
 
     this._response = await this._dio.get(Urls.FIND_ALL_STOCKS);
 
@@ -57,7 +55,7 @@ class Repository {
   }
 
   Future<List> findAllIndex() async {
-    List list;
+    List list = [];
 
     this._response = await this._dio.get(Urls.FIND_ALL_INDEX);
 
@@ -67,7 +65,7 @@ class Repository {
   }
 
   Future<List> findAllFuture() async {
-    List list;
+    List list = [];
 
     this._response = await this._dio.get(Urls.FIND_ALL_FUTURE);
 
@@ -77,7 +75,7 @@ class Repository {
   }
 
   Future<List> findAllMutualFund() async {
-    List list;
+    List list = [];
 
     this._response = await this._dio.get(Urls.FIND_ALL_MUTUAL_FUND);
 
@@ -87,7 +85,7 @@ class Repository {
   }
 
   Future<List> findAllEtf() async {
-    List list;
+    List list = [];
 
     this._response = await this._dio.get(Urls.FIND_ALL_ETF);
 
@@ -97,127 +95,162 @@ class Repository {
   }
 
   Future<Map> findAllReduc(int tamList) async {
-    List list;
-
-    int max = 20000;
+    List list = [];
 
     var numAle = new Random();
 
     for (var i = 0; i < tamList; i++) {
-      await findAllCurrency()
-          .then((value) => value.indexOf(numAle.nextInt(max)))
-          .then((value) => list.add(value));
-      await findAllIndex()
-          .then((value) => value.indexOf(numAle.nextInt(max)))
-          .then((value) => list.add(value));
-      await findAllStocks()
-          .then((value) => value.indexOf(numAle.nextInt(max)))
-          .then((value) => list.add(value));
-      await findAllEtf()
-          .then((value) => value.indexOf(numAle.nextInt(max)))
-          .then((value) => list.add(value));
-      await findAllFuture()
-          .then((value) => value.indexOf(numAle.nextInt(max)))
-          .then((value) => list.add(value));
-      await findAllMutualFund()
-          .then((value) => value.indexOf(numAle.nextInt(max)))
-          .then((value) => list.add(value));
+      await findAllCurrency().then((value) => value.forEach((element) {
+            if (double.parse(element['id'].toString()) ==
+                numAle.nextInt(value.length)) {
+              list.add(element);
+            }
+          }));
+
+      await findAllIndex().then((value) => value.forEach((element) {
+            if (double.parse(element['id'].toString()) ==
+                numAle.nextInt(value.length)) {
+              list.add(element);
+            }
+          }));
+      await findAllStocks().then((value) => value.forEach((element) {
+            if (double.parse(element['id'].toString()) ==
+                numAle.nextInt(value.length)) {
+              print(value.length);
+              list.add(element);
+            }
+          }));
+      await findAllEtf().then((value) => value.forEach((element) {
+            if (double.parse(element['id'].toString()) ==
+                numAle.nextInt(value.length)) {
+              list.add(element);
+            }
+          }));
+      await findAllFuture().then((value) => value.forEach((element) {
+            if (double.parse(element['id'].toString()) ==
+                numAle.nextInt(value.length)) {
+              list.add(element);
+            }
+          }));
+      await findAllMutualFund().then((value) => value.forEach((element) {
+            if (double.parse(element['id'].toString()) ==
+                numAle.nextInt(value.length)) {
+              list.add(element);
+            }
+          }));
     }
 
     return list.asMap();
   }
 
   Future<Map> findAllCurrencyReduc(int tamList) async {
-    List list;
-
-    int max = 20000;
+    List list = [];
 
     var numAle = new Random();
 
     for (var i = 0; i < tamList; i++) {
-      await findAllCurrency()
-          .then((value) => value.indexOf(numAle.nextInt(max)))
-          .then((value) => list.add(value));
+      await findAllCurrency().then((value) => value.forEach((element) {
+            if (double.parse(element['id'].toString()) ==
+                numAle.nextInt(value.length)) {
+              list.add(element);
+            }
+          }));
     }
 
     return list.asMap();
   }
 
   Future<Map> findAllStocksReduc(int tamList) async {
-    List list;
-
-    int max = 20000;
+    List list = [];
 
     var numAle = new Random();
 
     for (var i = 0; i < tamList; i++) {
-      await findAllStocks()
-          .then((value) => value.indexOf(numAle.nextInt(max)))
-          .then((value) => list.add(value));
+      await findAllStocks().then((value) => value.forEach((element) {
+            if (double.parse(element['id'].toString()) ==
+                numAle.nextInt(value.length)) {
+              list.add(element);
+            }
+          }));
     }
+
+    print('123');
+    print(list.length);
 
     return list.asMap();
   }
 
   Future<Map> findAllIndexReduc(int tamList) async {
-    List list;
+    List list = [];
 
     int max = 20000;
 
     var numAle = new Random();
 
     for (var i = 0; i < tamList; i++) {
-      await findAllIndex()
-          .then((value) => value.indexOf(numAle.nextInt(max)))
-          .then((value) => list.add(value));
+      await findAllIndex().then((value) => value.forEach((element) {
+            if (double.parse(element['id'].toString()) ==
+                numAle.nextInt(value.length)) {
+              list.add(element);
+            }
+          }));
     }
 
     return list.asMap();
   }
 
   Future<Map> findAllFutureReduc(int tamList) async {
-    List list;
+    List list = [];
 
     int max = 20000;
 
     var numAle = new Random();
 
     for (var i = 0; i < tamList; i++) {
-      await findAllFuture()
-          .then((value) => value.indexOf(numAle.nextInt(max)))
-          .then((value) => list.add(value));
+      await findAllFuture().then((value) => value.forEach((element) {
+            if (double.parse(element['id'].toString()) ==
+                numAle.nextInt(value.length)) {
+              list.add(element);
+            }
+          }));
     }
 
     return list.asMap();
   }
 
   Future<Map> findAllMutualFundReduc(int tamList) async {
-    List list;
+    List list = [];
 
     int max = 20000;
 
     var numAle = new Random();
 
     for (var i = 0; i < tamList; i++) {
-      await findAllMutualFund()
-          .then((value) => value.indexOf(numAle.nextInt(max)))
-          .then((value) => list.add(value));
+      await findAllMutualFund().then((value) => value.forEach((element) {
+            if (double.parse(element['id'].toString()) ==
+                numAle.nextInt(value.length)) {
+              list.add(element);
+            }
+          }));
     }
 
     return list.asMap();
   }
 
   Future<Map> findAllEtfReduc(int tamList) async {
-    List list;
+    List list = [];
 
     int max = 20000;
 
     var numAle = new Random();
 
     for (var i = 0; i < tamList; i++) {
-      await findAllEtf()
-          .then((value) => value.indexOf(numAle.nextInt(max)))
-          .then((value) => list.add(value));
+      await findAllEtf().then((value) => value.forEach((element) {
+            if (double.parse(element['id'].toString()) ==
+                numAle.nextInt(value.length)) {
+              list.add(element);
+            }
+          }));
     }
 
     return list.asMap();
