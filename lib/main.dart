@@ -31,7 +31,7 @@ class ValuePeekApp extends StatelessWidget {
     return ApiProvider(
       child: MaterialApp(
           title: "Trade Quotes",
-          routes: {'/sector': (_) => SectorInformation('STOCKS', 0.0)},
+          // routes: {'/sector': (_) => SectorInformation('STOCKS', 0.0)},
           theme: ThemeData(
               fontFamily: 'Montserrat',
               primaryColor: Color(0xFF529C82),
@@ -593,8 +593,7 @@ class ValuePeekHomeState extends State<ValuePeekHome>
                     //elevation: 0.0,
                   ),
                   SliverPadding(padding: EdgeInsets.symmetric(vertical: 8.0)),
-                  _titleSliverBoxSection(
-                      "Em Alta!", "Maiores altas do momento!"),
+                  _titleSliverBoxSection("Em Foco!", "Fundos de Investimento"),
                   _streamHandlerSliverBoxSection(listsBloc.gainersListStream,
                       (AsyncSnapshot data) {
                     return _marketListBuilder(
@@ -602,7 +601,7 @@ class ValuePeekHomeState extends State<ValuePeekHome>
                   }),
                   SliverPadding(padding: EdgeInsets.symmetric(vertical: 8.0)),
                   _titleSliverBoxSection(
-                      "Em Queda!", "Maiore quedas do momento!"),
+                      "Indices!", "Maiores quedas do momento!"),
                   _streamHandlerSliverBoxSection(
                       losersListBloc.losersListStream, (AsyncSnapshot data) {
                     return _marketListBuilder(
@@ -616,9 +615,9 @@ class ValuePeekHomeState extends State<ValuePeekHome>
                     return _marketListBuilder(
                         data.data as List<MarketList>, con);
                   }),
-                  SliverPadding(padding: EdgeInsets.symmetric(vertical: 8.0)),
-                  _titleSliverBoxSection(
-                      "Ações", "Ações que se destacam essa semana!."),
+                  // SliverPadding(padding: EdgeInsets.symmetric(vertical: 8.0)),
+                  // _titleSliverBoxSection(
+                  //     "Ações", "Ações que se destacam essa semana!."),
                   // _streamHandlerSliverBoxSection(sectorBloc.sectorStream,
                   //     (AsyncSnapshot data) {
                   //   return sectorsListViewBuilder(
@@ -668,7 +667,7 @@ class ValuePeekHomeState extends State<ValuePeekHome>
                                 child: const Icon(
                                 Icons.cloud_off,
                                 color: Colors.white,
-                                size: 32.0,
+                                size: 35.0,
                               ))
                             : const Center(
                                 child: const CircularProgressIndicator()),
@@ -677,7 +676,7 @@ class ValuePeekHomeState extends State<ValuePeekHome>
                             child: const Icon(
                             Icons.cloud_off,
                             color: Colors.white,
-                            size: 32.0,
+                            size: 35.0,
                           ))
                         : onDataAvailable(snapshot)),
                     crossFadeState:
@@ -813,7 +812,7 @@ class ValuePeekHomeState extends State<ValuePeekHome>
     return ListView.builder(
       itemCount: gainList.length,
       itemBuilder: (BuildContext c, int i) {
-        Ativo index = (gainList[i].quote as Ativo);
+        Ativo index = (gainList[i].ativo as Ativo);
         return GradientColorCard(
             kColora: gainList[i].kColora,
             kColorb: gainList[i].kColorb,
@@ -831,17 +830,17 @@ class ValuePeekHomeState extends State<ValuePeekHome>
     );
   }
 
-  String sourceToSimpleString(String src) {
-    if (src.contains('Close')) {
-      return src;
-    } else if (src.contains('IEX')) {
-      return "by IEX";
-    } else if (src.contains('15')) {
-      return "15 min";
-    } else {
-      return "Previous";
-    }
-  }
+  // String sourceToSimpleString(String src) {
+  //   if (src.contains('Close')) {
+  //     return src;
+  //   } else if (src.contains('IEX')) {
+  //     return "by IEX";
+  //   } else if (src.contains('15')) {
+  //     return "15 min";
+  //   } else {
+  //     return "Previous";
+  //   }
+  // }
 
   String numToSimple(dynamic num) {
     if (num == null) {
@@ -985,7 +984,7 @@ class GradientColorCard extends StatelessWidget {
             padding: EdgeInsets.all(8.0),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                  // colors: [kColora, kColorb],
+                  colors: [kColora, kColorb],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight),
               borderRadius: BorderRadius.circular(8.0),
@@ -1047,231 +1046,231 @@ class _CustomCircleAvatarState extends State<CustomCircleAvatar> {
   }
 }
 
-class SectorInformation extends StatefulWidget {
-  final String sector;
-  final dynamic perf;
+// class SectorInformation extends StatefulWidget {
+//   final String sector;
+//   final dynamic perf;
 
-  SectorInformation(this.sector, this.perf);
+//   SectorInformation(this.sector, this.perf);
 
-  @override
-  _SectorInformationState createState() => _SectorInformationState();
-}
+//   @override
+//   _SectorInformationState createState() => _SectorInformationState();
+// }
 
-class _SectorInformationState extends State<SectorInformation> {
-  ScrollController _scrollController;
-  CollectionsBloc _collectionsBloc;
+// class _SectorInformationState extends State<SectorInformation> {
+//   ScrollController _scrollController;
+//   CollectionsBloc _collectionsBloc;
 
-  @override
-  void initState() {
-    super.initState();
-    _collectionsBloc = CollectionsBloc(ApiReques.getInstance(), widget.sector);
-    _scrollController = ScrollController();
-  }
+//   @override
+//   void initState() {
+//     super.initState();
+//     _collectionsBloc = CollectionsBloc(ApiReques.getInstance(), widget.sector);
+//     _scrollController = ScrollController();
+//   }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
+//   @override
+//   void dispose() {
+//     _scrollController.dispose();
+//     super.dispose();
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).backgroundColor,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          if (_scrollController.hasClients) _scrollController.jumpTo(0);
-        },
-        child: Icon(Icons.arrow_drop_up),
-      ),
-      body: SafeArea(
-        child: StreamBuilder(
-            stream: _collectionsBloc.collectionStream,
-            //initialData: [],
-            builder: (b, snapshot) {
-              return AnimatedCrossFade(
-                  firstCurve: Curves.fastOutSlowIn,
-                  secondCurve: Curves.fastOutSlowIn,
-                  firstChild: Column(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(8.0),
-                          child:
-                              (snapshot.connectionState == ConnectionState.none)
-                                  ? IconButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          _collectionsBloc.refresh();
-                                        });
-                                      },
-                                      icon: Icon(
-                                        Icons.cloud_off,
-                                        size: 32.0,
-                                        color: Colors.white70,
-                                      ),
-                                    )
-                                  : const Center(
-                                      child: const CircularProgressIndicator()),
-                        )
-                      ]),
-                  secondChild: (snapshot.hasData
-                      ? CustomScrollView(
-                          controller: _scrollController,
-                          physics: BouncingScrollPhysics(),
-                          slivers: <Widget>[
-                            SliverToBoxAdapter(
-                              child: Container(
-                                  height: 130,
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: 8.0,
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: <Widget>[
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 32.0),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          mainAxisSize: MainAxisSize.max,
-                                          children: <Widget>[
-                                            Text(
-                                              "${numToSimple(snapshot.data.length)} Cotações",
-                                              style: TextStyle(
-                                                  fontSize: 32.0,
-                                                  fontWeight: FontWeight.w300,
-                                                  color: Colors.white),
-                                            ),
-                                            FlatButton.icon(
-                                              onPressed: () {
-                                                setState(() {
-                                                  _collectionsBloc.refresh();
-                                                });
-                                              },
-                                              icon: Icon(
-                                                Icons.refresh,
-                                                size: 20.0,
-                                                color: Colors.white,
-                                              ),
-                                              label: Text(
-                                                "Recarregar",
-                                                style: TextStyle(
-                                                    color: Colors.white),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Padding(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 32.0),
-                                          child: Center(
-                                            child: Text(
-                                              widget.sector,
-                                              style: TextStyle(
-                                                  fontSize: 24.0,
-                                                  color: Colors.white),
-                                            ),
-                                          )),
-                                      Divider(
-                                        color: Colors.white,
-                                      ),
-                                    ],
-                                  )),
-                            ),
-                            SliverPadding(
-                                padding: EdgeInsets.symmetric(vertical: 8)),
-                            SliverPadding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 8.0),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate((c, i) {
-                                  Ativo q = snapshot.data[i] as Ativo;
-                                  return Center(
-                                      child: Dismissible(
-                                          key: Key(q.symbol),
-                                          dismissThresholds: <DismissDirection,
-                                              double>{
-                                            DismissDirection.horizontal: 70.0,
-                                          },
-                                          onDismissed: (d) {
-                                            setState(() {
-                                              (snapshot.data as List)
-                                                  .removeAt(i);
-                                            });
-                                          },
-                                          child: GradientColorCard(
-                                            kColora: q.kColora,
-                                            kColorb: q.kColorb,
-                                            child: QuoteWidget(
-                                              index: q,
-                                              allowPushRoute: true,
-                                              isCrypto:
-                                                  q.sector == "cryptocurrency",
-                                              ifIsCrypto: Scaffold.of(b),
-                                            ),
-                                          )));
-                                }, childCount: snapshot.data.length),
-                              ),
-                            )
-                          ],
-                        )
-                      : Column(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                              const Icon(
-                                Icons.cloud_off,
-                                color: Colors.white70,
-                                size: 32.0,
-                              ),
-                              Container(
-                                padding: EdgeInsets.all(8.0),
-                                child: (snapshot.hasError)
-                                    ? Text(
-                                        "Erro de Recuperação de dados",
-                                        textAlign: TextAlign.center,
-                                      )
-                                    : const Center(
-                                        child: Text("Problemas de Conexão")),
-                              )
-                            ])),
-                  crossFadeState:
-                      (snapshot.connectionState != ConnectionState.done)
-                          ? CrossFadeState.showFirst
-                          : CrossFadeState.showSecond,
-                  duration: Duration(milliseconds: 800));
-            }),
-      ),
-    );
-  }
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       backgroundColor: Theme.of(context).backgroundColor,
+//       floatingActionButton: FloatingActionButton(
+//         onPressed: () {
+//           if (_scrollController.hasClients) _scrollController.jumpTo(0);
+//         },
+//         child: Icon(Icons.arrow_drop_up),
+//       ),
+//       body: SafeArea(
+//         child: StreamBuilder(
+//             stream: _collectionsBloc.collectionStream,
+//             //initialData: [],
+//             builder: (b, snapshot) {
+//               return AnimatedCrossFade(
+//                   firstCurve: Curves.fastOutSlowIn,
+//                   secondCurve: Curves.fastOutSlowIn,
+//                   firstChild: Column(
+//                       mainAxisSize: MainAxisSize.max,
+//                       mainAxisAlignment: MainAxisAlignment.center,
+//                       crossAxisAlignment: CrossAxisAlignment.stretch,
+//                       children: [
+//                         Container(
+//                           padding: EdgeInsets.all(8.0),
+//                           child:
+//                               (snapshot.connectionState == ConnectionState.none)
+//                                   ? IconButton(
+//                                       onPressed: () {
+//                                         setState(() {
+//                                           _collectionsBloc.refresh();
+//                                         });
+//                                       },
+//                                       icon: Icon(
+//                                         Icons.cloud_off,
+//                                         size: 32.0,
+//                                         color: Colors.white70,
+//                                       ),
+//                                     )
+//                                   : const Center(
+//                                       child: const CircularProgressIndicator()),
+//                         )
+//                       ]),
+//                   secondChild: (snapshot.hasData
+//                       ? CustomScrollView(
+//                           controller: _scrollController,
+//                           physics: BouncingScrollPhysics(),
+//                           slivers: <Widget>[
+//                             SliverToBoxAdapter(
+//                               child: Container(
+//                                   height: 130,
+//                                   padding: EdgeInsets.symmetric(
+//                                     vertical: 8.0,
+//                                   ),
+//                                   child: Column(
+//                                     mainAxisAlignment:
+//                                         MainAxisAlignment.spaceBetween,
+//                                     children: <Widget>[
+//                                       Padding(
+//                                         padding: EdgeInsets.symmetric(
+//                                             horizontal: 32.0),
+//                                         child: Row(
+//                                           mainAxisAlignment:
+//                                               MainAxisAlignment.spaceBetween,
+//                                           mainAxisSize: MainAxisSize.max,
+//                                           children: <Widget>[
+//                                             Text(
+//                                               "${numToSimple(snapshot.data.length)} Cotações",
+//                                               style: TextStyle(
+//                                                   fontSize: 32.0,
+//                                                   fontWeight: FontWeight.w300,
+//                                                   color: Colors.white),
+//                                             ),
+//                                             FlatButton.icon(
+//                                               onPressed: () {
+//                                                 setState(() {
+//                                                   _collectionsBloc.refresh();
+//                                                 });
+//                                               },
+//                                               icon: Icon(
+//                                                 Icons.refresh,
+//                                                 size: 20.0,
+//                                                 color: Colors.white,
+//                                               ),
+//                                               label: Text(
+//                                                 "Recarregar",
+//                                                 style: TextStyle(
+//                                                     color: Colors.white),
+//                                               ),
+//                                             ),
+//                                           ],
+//                                         ),
+//                                       ),
+//                                       Padding(
+//                                           padding: EdgeInsets.symmetric(
+//                                               horizontal: 32.0),
+//                                           child: Center(
+//                                             child: Text(
+//                                               widget.sector,
+//                                               style: TextStyle(
+//                                                   fontSize: 24.0,
+//                                                   color: Colors.white),
+//                                             ),
+//                                           )),
+//                                       Divider(
+//                                         color: Colors.white,
+//                                       ),
+//                                     ],
+//                                   )),
+//                             ),
+//                             SliverPadding(
+//                                 padding: EdgeInsets.symmetric(vertical: 8)),
+//                             SliverPadding(
+//                               padding:
+//                                   const EdgeInsets.symmetric(horizontal: 8.0),
+//                               sliver: SliverList(
+//                                 delegate: SliverChildBuilderDelegate((c, i) {
+//                                   Ativo q = snapshot.data[i] as Ativo;
+//                                   return Center(
+//                                       child: Dismissible(
+//                                           key: Key(q.symbol),
+//                                           dismissThresholds: <DismissDirection,
+//                                               double>{
+//                                             DismissDirection.horizontal: 70.0,
+//                                           },
+//                                           onDismissed: (d) {
+//                                             setState(() {
+//                                               (snapshot.data as List)
+//                                                   .removeAt(i);
+//                                             });
+//                                           },
+//                                           child: GradientColorCard(
+//                                             kColora: q.kColora,
+//                                             kColorb: q.kColorb,
+//                                             child: QuoteWidget(
+//                                               index: q,
+//                                               allowPushRoute: true,
+//                                               isCrypto:
+//                                                   q.sector == "cryptocurrency",
+//                                               ifIsCrypto: Scaffold.of(b),
+//                                             ),
+//                                           )));
+//                                 }, childCount: snapshot.data.length),
+//                               ),
+//                             )
+//                           ],
+//                         )
+//                       : Column(
+//                           mainAxisSize: MainAxisSize.max,
+//                           mainAxisAlignment: MainAxisAlignment.center,
+//                           crossAxisAlignment: CrossAxisAlignment.stretch,
+//                           children: [
+//                               const Icon(
+//                                 Icons.cloud_off,
+//                                 color: Colors.white70,
+//                                 size: 32.0,
+//                               ),
+//                               Container(
+//                                 padding: EdgeInsets.all(8.0),
+//                                 child: (snapshot.hasError)
+//                                     ? Text(
+//                                         "Erro de Recuperação de dados",
+//                                         textAlign: TextAlign.center,
+//                                       )
+//                                     : const Center(
+//                                         child: Text("Problemas de Conexão")),
+//                               )
+//                             ])),
+//                   crossFadeState:
+//                       (snapshot.connectionState != ConnectionState.done)
+//                           ? CrossFadeState.showFirst
+//                           : CrossFadeState.showSecond,
+//                   duration: Duration(milliseconds: 800));
+//             }),
+//       ),
+//     );
+//   }
 
-  String numToSimple(dynamic num) {
-    if (num == null || num is String) {
-      return "N/A";
-    }
-    if (num > 1000000000000) {
-      return "${((num / 1000000000) as double).toStringAsFixed(2)} T";
-    } else if (num > 1000000000) {
-      return "${((num / 1000000000) as double).toStringAsFixed(2)} B";
-    } else if (num > 1000000) {
-      return "${((num / 1000000) as double).toStringAsFixed(2)} M";
-    } else if (num > 1000) {
-      return "${((num / 1000) as double).toStringAsFixed(2)} K";
-    } else {
-      if (num is int) {
-        return num.toString();
-      }
-      return (num as double)?.toStringAsFixed(2);
-    }
-  }
-}
+//   String numToSimple(dynamic num) {
+//     if (num == null || num is String) {
+//       return "N/A";
+//     }
+//     if (num > 1000000000000) {
+//       return "${((num / 1000000000) as double).toStringAsFixed(2)} T";
+//     } else if (num > 1000000000) {
+//       return "${((num / 1000000000) as double).toStringAsFixed(2)} B";
+//     } else if (num > 1000000) {
+//       return "${((num / 1000000) as double).toStringAsFixed(2)} M";
+//     } else if (num > 1000) {
+//       return "${((num / 1000) as double).toStringAsFixed(2)} K";
+//     } else {
+//       if (num is int) {
+//         return num.toString();
+//       }
+//       return (num as double)?.toStringAsFixed(2);
+//     }
+//   }
+// }
 
 class QuoteWidget extends StatelessWidget {
   final Ativo index;
@@ -1361,7 +1360,7 @@ class QuoteWidget extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text("${index.companyName}",
+                      Text(index.companyName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -1369,7 +1368,7 @@ class QuoteWidget extends StatelessWidget {
                             fontSize: 18.0,
                             fontWeight: FontWeight.bold,
                           )),
-                      Text("${index.symbol}",
+                      Text(index.symbol,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.black87,
@@ -1378,11 +1377,6 @@ class QuoteWidget extends StatelessWidget {
                     ],
                   ),
                 ),
-                /*Text("+16.32%", textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.greenAccent,
-                        fontSize: 28.0,
-                      ))*/
               ],
             ),
             Row(
@@ -1393,7 +1387,7 @@ class QuoteWidget extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.all(2.0),
                   child: Text(
-                    "\$${index.delayedPrice ?? index.price}",
+                    "\$${double.parse(index.price) != null ? double.parse(index.price).toStringAsFixed(3) : index.price}",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Colors.black87,
@@ -1427,7 +1421,7 @@ class QuoteWidget extends StatelessWidget {
                             ),
                             //const Spacer(,),
                             Text(
-                              " ${(double.parse(index.changePercent) * 100) > 0 ? '+' : ''}${(double.parse(index.changePercent) * 100).toStringAsFixed(2)}%",
+                              " ${double.parse(index.changePercent) > 0 ? '+' : ''}${double.parse(index.changePercent) != null ? double.parse(index.changePercent).toStringAsFixed(2) : index.changePercent}%",
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: Colors.black87,
@@ -1438,7 +1432,7 @@ class QuoteWidget extends StatelessWidget {
                             Container(
                                 alignment: Alignment.bottomCenter,
                                 child: Text(
-                                  "(${index.change})",
+                                  '${double.parse(index.change) > 0 ? '+' : ''}${double.parse(index.change) != null ? double.parse(index.change).toStringAsFixed(4) : index.change}',
                                   textAlign: TextAlign.center,
                                   overflow: TextOverflow.fade,
                                   style: TextStyle(
@@ -1464,31 +1458,31 @@ class QuoteWidget extends StatelessWidget {
                         color: Colors.black87,
                         // fontFamily: 'Pacifico',
                         //fontWeight: FontWeight.bold,
-                        fontSize: 14.0),
+                        fontSize: 11.0),
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(2.0),
                   child: Text(
-                    "ALTA: \$${index.high}",
+                    "ALTA: \$${double.parse(index.high) != null ? double.parse(index.high).toStringAsFixed(3) : index.high}",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Colors.black87,
                         // fontFamily: 'Pacifico',
                         //fontWeight: FontWeight.bold,
-                        fontSize: 14.0),
+                        fontSize: 11.0),
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(2.0),
                   child: Text(
-                    "BAIXA: \$${index.low}",
+                    "BAIXA: \$${double.parse(index.low) != null ? double.parse(index.low).toStringAsFixed(3) : index.low}",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Colors.black87,
                         // fontFamily: 'Pacifico',
                         //fontWeight: FontWeight.bold,
-                        fontSize: 14.0),
+                        fontSize: 11.0),
                   ),
                 ),
               ],

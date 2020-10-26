@@ -18,7 +18,7 @@ enum MarketListType {
 
 class MarketList {
   final MarketListType _marketListType;
-  final Ativo.Ativo _quote;
+  final Ativo.Ativo _ativo;
   final Color kColora = Color.fromRGBO(
       kColorMin + Math.Random().nextInt(255 - kColorMin),
       kColorMin + Math.Random().nextInt(255 - kColorMin),
@@ -30,11 +30,11 @@ class MarketList {
       kColorMin + Math.Random().nextInt(255 - kColorMin),
       1.0);
 
-  MarketList(this._marketListType, this._quote);
+  MarketList(this._marketListType, this._ativo);
 
   MarketList.fromJson(Map marketListJson, MarketListType marketListType)
       : _marketListType = marketListType,
-        _quote = Ativo.Ativo.fromJson(marketListJson);
-  get quote => this._quote;
+        _ativo = Ativo.Ativo.fromJson(marketListJson);
+  get ativo => this._ativo;
   get marketListType => this._marketListType;
 }

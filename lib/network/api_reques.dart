@@ -30,72 +30,75 @@ class ApiReques {
 
   Future<List<MarketLists.MarketList>> fetchAList(
       MarketLists.MarketListType marketListType) async {
-    List<MarketLists.MarketList> list = [];
+    var list;
     switch (marketListType) {
       case MarketLists.MarketListType.GAINERS:
-        list = await lists(await _repository.findAllReduc(15), marketListType);
-        // await _repository.findAllStocksReduc(50), marketListType);
+        list =
+            await lists(await _repository.findAllEtfReduc(20), marketListType);
         break;
       case MarketLists.MarketListType.LOSERS:
-        list = await lists(await _repository.findAllReduc(15), marketListType);
-        // await _repository.findAllStocksReduc(50), marketListType);
+        list = await lists(
+            await _repository.findAllIndexReduc(20), marketListType);
         break;
       case MarketLists.MarketListType.STOCKS:
         list = await lists(
-            await _repository.findAllCurrencyReduc(15), marketListType);
+            await _repository.findAllCurrencyReduc(20), marketListType);
         // await _repository.findAllStocksReduc(50), marketListType);
         break;
-      case MarketLists.MarketListType.CRIPTO:
-        list = await lists(
-            await _repository.findAllCurrencyReduc(15), marketListType);
-        break;
+      // case MarketLists.MarketListType.CRIPTO:
+      //   list = await lists(
+      //       await _repository.findAllCurrencyReduc(15), marketListType);
+      //   break;
 
-      case MarketLists.MarketListType.FUTURE:
-        list = await lists(
-            await _repository.findAllFutureReduc(15), marketListType);
-        break;
+      // case MarketLists.MarketListType.FUTURE:
+      //   list = await lists(
+      //       await _repository.findAllFutureReduc(15), marketListType);
+      //   break;
 
-      case MarketLists.MarketListType.INDEX:
-        list = await lists(
-            await _repository.findAllIndexReduc(15), marketListType);
-        break;
+      // case MarketLists.MarketListType.INDEX:
+      //   list = await lists(
+      //       await _repository.findAllIndexReduc(15), marketListType);
+      //   break;
 
-      case MarketLists.MarketListType.MUTUAL_FUND:
-        list = await lists(
-            await _repository.findAllMutualFundReduc(15), marketListType);
-        break;
+      // case MarketLists.MarketListType.MUTUAL_FUND:
+      //   list = await lists(
+      //       await _repository.findAllMutualFundReduc(15), marketListType);
+      //   break;
 
-      case MarketLists.MarketListType.ETF:
-        list =
-            await lists(await _repository.findAllEtfReduc(15), marketListType);
-        break;
+      // case MarketLists.MarketListType.ETF:
+      //   list =
+      //       await lists(await _repository.findAllEtfReduc(15), marketListType);
+      //   break;
     }
-
-    print(list.length);
 
     return list;
   }
 
-  Future<List<MarketList>> lists(
+  Future<List<MarketLists.MarketList>> lists(
       Map symbols, MarketLists.MarketListType marketListType) async {
-    var list1 = fetchAtivos(symbols);
-    var list2 = list1;
+    MarketList _marketList;
+    Ativo _ativo;
+    var list1;
 
-    List<Ativo> list = [];
+    List list;
 
-    List<MarketList> lsMarket = [];
+    List<MarketLists.MarketList> lsMarket = [];
 
-    if (list1 != null) {
+    list1 = fetchAtivos(symbols);
+
+    List list2 = list1;
+
+    if (list2.length > 10) {
       switch (marketListType) {
         case MarketLists.MarketListType.GAINERS:
-          list2.sort((a, b) => double.parse(b.changePercent)
-              .compareTo(double.parse(a.changePercent)));
+          // list2.sort((a, b) => double.parse(b.changePercent)
+          //     .compareTo(double.parse(a.changePercent)));
           list = list2;
 
           break;
         case MarketLists.MarketListType.LOSERS:
-          list2.sort((a, b) => double.parse(a.changePercent)
-              .compareTo(double.parse(b.changePercent)));
+          // list2.sort((a, b) => double.parse(a.changePercent)
+          //     .compareTo(double.parse(b.changePercent)));
           list = list2;
 
           break;
@@ -118,42 +121,44 @@ class ApiReques {
           list = list1;
           break;
       }
+
+      for (var i = 0; i < list.length; i++) {
+        _ativo = await list.elementAt(i);
+        _marketList = MarketLists.MarketList(marketListType, _ativo);
+
+        lsMarket.add(_marketList);
+      }
+
+      return lsMarket;
     } else {
-      lists(symbols, marketListType);
+      return fetchAList(marketListType);
     }
-    list.forEach((element) {
-      lsMarket.add(MarketList(marketListType, element));
-    });
-
-    print('Tamanho da Lista ${lsMarket.length}');
-
-    return lsMarket;
   }
 
   Future<List<Ativo>> fetchCollectionsFor(String sector) async {
     print("Fetching $sector!");
     List<Ativo> list = [];
 
-    List<MarketList> lsMarket;
-
+    List<MarketLists.MarketList> lsMarket;
+    print('object');
     switch (sector) {
       case "STOCKS":
-        list = fetchAtivos(await _repository.findAllStocksReduc(10));
+        list = await fetchAtivos(await _repository.findAllStocksReduc(10));
         break;
       case "CRIPTO":
-        list = fetchAtivos(await _repository.findAllCurrencyReduc(10));
+        list = await fetchAtivos(await _repository.findAllCurrencyReduc(10));
         break;
       case "FUTURE":
-        list = fetchAtivos(await _repository.findAllFutureReduc(10));
+        list = await fetchAtivos(await _repository.findAllFutureReduc(10));
         break;
       case "ETF":
-        list = fetchAtivos(await _repository.findAllEtfReduc(10));
+        list = await fetchAtivos(await _repository.findAllEtfReduc(10));
         break;
       case "INDEX":
-        list = fetchAtivos(await _repository.findAllIndexReduc(10));
+        list = await fetchAtivos(await _repository.findAllIndexReduc(10));
         break;
       case "MUTUAL_FUND":
-        list = fetchAtivos(await _repository.findAllMutualFundReduc(10));
+        list = await fetchAtivos(await _repository.findAllMutualFundReduc(10));
         break;
     }
 
@@ -186,28 +191,28 @@ class ApiReques {
     _sIexApiProxyInstance = null;
   }
 
-  List<Ativo> fetchAtivos(Map symbols) {
-    List<Ativo> list = [];
-    List lsSymbols = [];
+  List fetchAtivos(Map symbols) {
+    Future<Ativo> _ativo;
+    // Ativo _ativo;
+    var list = [];
+
+    int tamSymbols = symbols.length;
 
     symbols.forEach((key, value) {
-      lsSymbols.add(value);
-    });
+      _ativo = fetchSingleAtivo(value['symbol']);
 
-    lsSymbols.forEach((element) async {
-      var fet = await fetchSingleAtivo(element['symbol']);
-      if (fet != null) {
-        // print(fet.price);
-        list.add(fet);
+      if (_ativo != null) {
+        list.add(_ativo);
       } else {
         print('object null');
+        tamSymbols--;
       }
     });
 
-    if (list.length >= 5) {
+    if (list.length == tamSymbols) {
+      // print('123 ${list.length}');
       return list;
-    } else
-      return null;
+    }
   }
 
   Future<Ativo> fetchSingleAtivo(String symbol) async {
@@ -217,26 +222,31 @@ class ApiReques {
       final Map<String, Map<String, dynamic>> quotePrice =
           await FinanceQuote.getRawData(
               quoteProvider: QuoteProvider.yahoo, symbols: <String>[symbol]);
-      ativo = Ativo();
-      ativo.symbol = symbol;
 
-      ativo.open = quotePrice[symbol]['regularMarketOpen'].toString();
-      ativo.low = quotePrice[symbol]['regularMarketDayLow'].toString();
-      ativo.high = quotePrice[symbol]['regularMarketDayHigh'].toString();
-      ativo.price = quotePrice[symbol]['regularMarketPrice'].toString();
-      ativo.change = quotePrice[symbol]['regularMarketChange'].toString();
-      ativo.changePercent =
-          quotePrice[symbol]['regularMarketChangePercent'].toString();
-      ativo.avgTotalVolume =
-          quotePrice[symbol]['regularMarketVolume'].toString();
-      ativo.companyName = quotePrice[symbol]['longName'].toString();
-      ativo.currency = quotePrice[symbol]['currency'].toString();
-      ativo.latestTime = quotePrice[symbol]['regularMarketTime'].toString();
-      ativo.delayedPrice = quotePrice[symbol]['exangeDataDelayadBy'].toString();
-      ativo.peRatio = quotePrice[symbol]['forwardPE'].toString();
-      ativo.primaryExchange = quotePrice[symbol]['fullExchangeName'].toString();
+      if (quotePrice != null) {
+        ativo = Ativo();
+        ativo.symbol = symbol;
 
-      return ativo;
+        ativo.open = quotePrice[symbol]['regularMarketOpen'].toString();
+        ativo.low = quotePrice[symbol]['regularMarketDayLow'].toString();
+        ativo.high = quotePrice[symbol]['regularMarketDayHigh'].toString();
+        ativo.price = quotePrice[symbol]['regularMarketPrice'].toString();
+        ativo.change = quotePrice[symbol]['regularMarketChange'].toString();
+        ativo.changePercent =
+            quotePrice[symbol]['regularMarketChangePercent'].toString();
+        ativo.avgTotalVolume =
+            quotePrice[symbol]['regularMarketVolume'].toString();
+        ativo.companyName = quotePrice[symbol]['longName'].toString();
+        ativo.currency = quotePrice[symbol]['currency'].toString();
+        ativo.latestTime = quotePrice[symbol]['regularMarketTime'].toString();
+        ativo.delayedPrice =
+            quotePrice[symbol]['exangeDataDelayadBy'].toString();
+        ativo.peRatio = quotePrice[symbol]['forwardPE'].toString();
+        ativo.primaryExchange =
+            quotePrice[symbol]['fullExchangeName'].toString();
+
+        return ativo;
+      }
     } catch (e) {
       return null;
     }

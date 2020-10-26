@@ -19,8 +19,8 @@ class Ativo implements Comparable<Ativo> {
   String high;
   String low;
   String currency;
-  String sector = 'cryptocurrency';
-  // String sector = 'qualquer';
+  // String sector = 'cryptocurrency';
+  String sector = 'qualquer';
 
   final Color kColora = Color.fromRGBO(
       kColorMin + Math.Random().nextInt(255 - kColorMin),

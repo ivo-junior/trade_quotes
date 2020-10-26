@@ -45,6 +45,7 @@ class LosersListBloc {
   LosersListBloc(this._iexApiProxy) {
     _losersListStream =
         _iexApiProxy.fetchAList(Lists.MarketListType.LOSERS).asStream();
+    print(_losersListStream);
   }
 
   void refresh() {
