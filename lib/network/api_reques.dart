@@ -241,7 +241,7 @@ class ApiReques {
         ativo.latestTime = quotePrice[symbol]['regularMarketTime'].toString();
         ativo.delayedPrice =
             quotePrice[symbol]['exangeDataDelayadBy'].toString();
-        ativo.peRatio = quotePrice[symbol]['forwardPE'].toString();
+        ativo.peRatio = quotePrice[symbol].keys.length.toString();
         ativo.primaryExchange =
             quotePrice[symbol]['fullExchangeName'].toString();
 
