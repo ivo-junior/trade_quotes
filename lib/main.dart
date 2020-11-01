@@ -13,6 +13,7 @@ import 'package:trade_quotes/data/repository.dart';
 import 'package:trade_quotes/models/ativo.dart';
 import 'package:trade_quotes/network/api_reques.dart';
 import 'package:trade_quotes/providers/api_provider.dart';
+import 'package:trade_quotes/view/academy.dart';
 
 import 'blocs/charts_bloc.dart';
 import 'blocs/collections_bloc.dart';
@@ -164,8 +165,46 @@ class ValuePeekHomeState extends State<ValuePeekHome>
     final StocksListBloc infocusListBloc =
         ApiProvider.infocusListBlocOf(context);
 
+    const drawerHeader = UserAccountsDrawerHeader(
+      accountName: Text('User Name'),
+      accountEmail: Text("user.name@gmail.com"),
+      currentAccountPicture: CircleAvatar(
+        backgroundColor: Colors.white,
+        child: FlutterLogo(size: 42.0),
+      ),
+      // otherAccountsPictures: <Widget>[
+      //   CircleAvatar(backgroundColor: Colors.yellow, child: Text('A')),
+      //   CircleAvatar(backgroundColor: Colors.yellow, child: Text('B')),
+      // ],
+    );
+    final drawerItems = ListView(
+      children: <Widget>[
+        drawerHeader,
+        ListTile(
+          leading: Icon(
+            Icons.school,
+            color: Colors.black,
+          ),
+          title: const Text('Academy',
+              style: TextStyle(
+                color: Colors.black,
+              )),
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (b) => Academy())),
+        ),
+        // ListTile(
+        //   title: const Text('Academy'),
+        //   // onTap: () => Navigator.of(context).push(),
+        // )
+      ],
+    );
+
     return Scaffold(
         backgroundColor: Theme.of(context).backgroundColor,
+        appBar: AppBar(),
+        drawer: Drawer(
+          child: drawerItems,
+        ),
         floatingActionButtonAnimator: FloatingActionButtonAnimator.scaling,
         floatingActionButton: FloatingActionButton(
             child: Icon(Icons.arrow_upward),
